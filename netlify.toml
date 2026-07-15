@@ -1,0 +1,6 @@
+# Boonesboro Lab Agent (BT3) — Netlify config
+[build]
+  publish = "."
+
+[functions]
+  node_bundler = "esbuild"
