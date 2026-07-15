@@ -481,6 +481,24 @@ class ApiError extends Error {
   constructor(status, body) { super(`Anthropic API ${status}: ${trunc(body, 500)}`); this.status = status; }
 }
 
+// Prompt caching: mark the last content block of the final message as a cache
+// breakpoint so each loop round reuses the cached prefix (system + tools +
+// prior rounds). Cache reads don't count toward the ITPM rate limit and bill
+// at ~10% of base input price.
+function withCacheBreakpoint(messages) {
+  if (!messages.length) return messages;
+  const out = messages.slice();
+  const last = out[out.length - 1];
+  let content = last.content;
+  if (typeof content === "string") content = [{ type: "text", text: content }];
+  if (!Array.isArray(content) || !content.length) return messages;
+  content = content.slice(0, -1).concat([
+    { ...content[content.length - 1], cache_control: { type: "ephemeral" } },
+  ]);
+  out[out.length - 1] = { ...last, content };
+  return out;
+}
+
 async function callClaude({ messages, toolChoice, onText }) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("ANTHROPIC_API_KEY is not set in the Netlify environment.");
@@ -490,8 +508,8 @@ async function callClaude({ messages, toolChoice, onText }) {
     body: JSON.stringify({
       model: MODEL(),
       max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
-      messages,
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
+      messages: withCacheBreakpoint(messages),
       tools: TOOLS,
       tool_choice: toolChoice || { type: "auto" },
       stream: true,
