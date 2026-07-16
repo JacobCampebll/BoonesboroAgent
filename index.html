@@ -22,6 +22,8 @@
   header .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
   header h1{font-size:16px;margin:0;font-weight:600}
   header .sub{color:var(--muted);font-size:12.5px}
+  header select{margin-left:auto;background:var(--bg);color:var(--text);border:1px solid #dcdcdc;
+    border-radius:999px;padding:6px 12px;font:600 13px/1 inherit;cursor:pointer;outline:none}
   #log{flex:1 1 auto;overflow-y:auto;padding:24px max(16px,calc(50% - 384px)) 32px}
   .turn{margin:0 0 24px}
   .user-msg{background:var(--user);border:none;border-radius:18px;
@@ -76,6 +78,10 @@
     <h1>Boonesboro Lab Agent</h1>
     <div class="sub">The Allen Company · Boonesborough Asphalt Plant (BT3) · Bailey KB · KYTC Specs/KM · Contracts · JMFs · Dataverse QC</div>
   </div>
+  <select id="provider" title="Which AI model answers your questions">
+    <option value="claude">Claude</option>
+    <option value="grok">Grok</option>
+  </select>
 </header>
 
 <div id="log"></div>
@@ -95,6 +101,9 @@
   var log = document.getElementById("log");
   var input = document.getElementById("input");
   var sendBtn = document.getElementById("send");
+  var providerSel = document.getElementById("provider");
+  try { providerSel.value = localStorage.getItem("bt3-provider") || "claude"; } catch(e){}
+  providerSel.addEventListener("change", function(){ try { localStorage.setItem("bt3-provider", providerSel.value); } catch(e){} });
   var history = [];        // [{role, content}] — assistant entries are final text only
   var aborter = null;
 
@@ -250,7 +259,7 @@
       var res = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: history.slice(-16) }),
+        body: JSON.stringify({ messages: history.slice(-16), provider: providerSel.value }),
         signal: aborter.signal
       });
       if (!res.ok || !res.body) {

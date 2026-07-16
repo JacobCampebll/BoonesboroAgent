@@ -7,8 +7,10 @@
 // Streams SSE events to the frontend (text deltas, tool activity, errors).
 //
 // Env vars:
-//   ANTHROPIC_API_KEY   (required)
+//   ANTHROPIC_API_KEY   (required for the Claude provider)
 //   ANTHROPIC_MODEL     (optional, default "claude-sonnet-4-5")
+//   XAI_API_KEY         (required for the Grok provider)
+//   XAI_MODEL           (optional, default "grok-4")
 //   DATAVERSE_API_URL   (optional — leave unset until IT delivers the endpoint)
 //   DATAVERSE_API_KEY   (optional — see queryDataverse() drop-in section)
 //   DATAVERSE_AUTH_HEADER (optional, default "Authorization")
@@ -23,6 +25,8 @@ import linkData from "./data/contract_links.mjs";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = () => process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
+const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
+const XAI_MODEL = () => process.env.XAI_MODEL || "grok-4";
 const MAX_ROUNDS = 10;          // hard cap; doctrine says typical runs are 1-8
 const MAX_TOKENS = 4096;
 const TOOL_RESULT_CHAR_CAP = 14000; // per tool result, keeps context sane
@@ -478,7 +482,7 @@ STYLE
 // =============================================================================
 
 class ApiError extends Error {
-  constructor(status, body) { super(`Anthropic API ${status}: ${trunc(body, 500)}`); this.status = status; }
+  constructor(status, body, provider = "Anthropic") { super(`${provider} API ${status}: ${trunc(body, 500)}`); this.status = status; }
 }
 
 // Prompt caching: mark the last content block of the final message as a cache
@@ -570,14 +574,113 @@ async function callClaude({ messages, toolChoice, onText }) {
   return { content, stopReason };
 }
 
-async function callClaudeRetry(args) {
+// =============================================================================
+// Grok (xAI) provider — OpenAI-compatible chat completions, same loop contract
+// =============================================================================
+
+// Internal history uses Anthropic-style content blocks; convert to OpenAI shape.
+function toOpenAiMessages(messages) {
+  const out = [{ role: "system", content: SYSTEM_PROMPT }];
+  for (const m of messages) {
+    const blocks = Array.isArray(m.content) ? m.content : [{ type: "text", text: String(m.content || "") }];
+    if (m.role === "assistant") {
+      const text = blocks.filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      const toolCalls = blocks.filter((b) => b.type === "tool_use").map((b) => ({
+        id: b.id, type: "function",
+        function: { name: b.name, arguments: JSON.stringify(b.input || {}) },
+      }));
+      const msg = { role: "assistant", content: text || null };
+      if (toolCalls.length) msg.tool_calls = toolCalls;
+      out.push(msg);
+    } else {
+      // user turn: plain text and/or tool_result blocks
+      const toolResults = blocks.filter((b) => b.type === "tool_result");
+      for (const tr of toolResults)
+        out.push({ role: "tool", tool_call_id: tr.tool_use_id, content: typeof tr.content === "string" ? tr.content : JSON.stringify(tr.content) });
+      const text = blocks.filter((b) => b.type === "text").map((b) => b.text).join("\n");
+      if (text) out.push({ role: "user", content: text });
+    }
+  }
+  return out;
+}
+
+const OPENAI_TOOLS = () => TOOLS.map((t) => ({
+  type: "function",
+  function: { name: t.name, description: t.description, parameters: t.input_schema },
+}));
+
+async function callGrok({ messages, toolChoice, onText }) {
+  const key = process.env.XAI_API_KEY;
+  if (!key) throw new Error("XAI_API_KEY is not set in the Netlify environment — add it under Site configuration → Environment variables to use Grok.");
+  const res = await fetch(XAI_API_URL, {
+    method: "POST",
+    headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      model: XAI_MODEL(),
+      max_tokens: MAX_TOKENS,
+      messages: toOpenAiMessages(messages),
+      tools: OPENAI_TOOLS(),
+      tool_choice: toolChoice && toolChoice.type === "none" ? "none" : "auto",
+      stream: true,
+    }),
+  });
+  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => ""), "xAI");
+
+  let text = "";
+  const calls = []; // accumulated by delta index
+  let finish = null;
+  const decoder = new TextDecoder();
+  let buf = "";
+  const reader = res.body.getReader();
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const data = line.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      let ev;
+      try { ev = JSON.parse(data); } catch { continue; }
+      const choice = ev.choices && ev.choices[0];
+      if (!choice) continue;
+      const delta = choice.delta || {};
+      if (typeof delta.content === "string" && delta.content) { text += delta.content; onText && onText(delta.content); }
+      if (Array.isArray(delta.tool_calls)) {
+        for (const tc of delta.tool_calls) {
+          const i = tc.index ?? 0;
+          if (!calls[i]) calls[i] = { id: tc.id || `call_${i}`, name: "", args: "" };
+          if (tc.id) calls[i].id = tc.id;
+          if (tc.function && tc.function.name) calls[i].name += tc.function.name;
+          if (tc.function && typeof tc.function.arguments === "string") calls[i].args += tc.function.arguments;
+        }
+      }
+      if (choice.finish_reason) finish = choice.finish_reason;
+    }
+  }
+
+  const content = [];
+  if (text) content.push({ type: "text", text });
+  for (const c of calls.filter(Boolean)) {
+    let input = {};
+    try { input = c.args ? JSON.parse(c.args) : {}; } catch { input = {}; }
+    content.push({ type: "tool_use", id: c.id, name: c.name, input });
+  }
+  return { content, stopReason: finish === "tool_calls" ? "tool_use" : "end_turn" };
+}
+
+async function callModelRetry(provider, args) {
+  const call = provider === "grok" ? callGrok : callClaude;
   try {
-    return await callClaude(args);
+    return await call(args);
   } catch (e) {
     const retryable = e instanceof ApiError && (e.status === 429 || e.status >= 500 || e.status === 529);
     if (!retryable) throw e;
     await new Promise((r) => setTimeout(r, 2500));
-    return await callClaude(args);
+    return await call(args);
   }
 }
 
@@ -585,7 +688,7 @@ async function callClaudeRetry(args) {
 // The agentic loop, streamed as SSE
 // =============================================================================
 
-async function runLoop(send, clientMessages) {
+async function runLoop(send, clientMessages, provider) {
   // History from the client is plain text (prior final answers only) — old
   // tool traffic is never replayed, which keeps retrieval scoped to the
   // latest user message.
@@ -605,7 +708,7 @@ async function runLoop(send, clientMessages) {
 
     let resp;
     try {
-      resp = await callClaudeRetry({
+      resp = await callModelRetry(provider, {
         messages: convo,
         toolChoice: force ? { type: "none" } : { type: "auto" },
         onText: (t) => { send({ type: "text", text: t }); },
@@ -613,7 +716,7 @@ async function runLoop(send, clientMessages) {
     } catch (e) {
       // tool_choice "none" not supported on some older API versions — retry auto
       if (force && String(e.message).includes("tool_choice")) {
-        resp = await callClaudeRetry({ messages: convo, toolChoice: { type: "auto" }, onText: (t) => send({ type: "text", text: t }) });
+        resp = await callModelRetry(provider, { messages: convo, toolChoice: { type: "auto" }, onText: (t) => send({ type: "text", text: t }) });
       } else throw e;
     }
 
@@ -654,6 +757,7 @@ export default async (req) => {
   const messages = body && Array.isArray(body.messages) ? body.messages.slice(-16) : null;
   if (!messages || !messages.length)
     return new Response(JSON.stringify({ error: "Body must be { messages: [{role, content}, ...] }" }), { status: 400, headers: { "content-type": "application/json" } });
+  const provider = body.provider === "grok" ? "grok" : "claude";
 
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -661,9 +765,9 @@ export default async (req) => {
       const send = (obj) => {
         try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`)); } catch { /* client gone */ }
       };
-      send({ type: "start", plant: "BT3", model: MODEL() }); // first bytes fast (TTFB)
+      send({ type: "start", plant: "BT3", model: provider === "grok" ? XAI_MODEL() : MODEL() }); // first bytes fast (TTFB)
       try {
-        await runLoop(send, messages);
+        await runLoop(send, messages, provider);
       } catch (e) {
         send({ type: "error", message: String(e.message || e) });
         send({ type: "done" });
@@ -683,4 +787,4 @@ export default async (req) => {
 };
 
 // Named exports for local smoke-testing only (ignored by Netlify)
-export { searchBailey, searchSpec, searchContracts, getJmf, queryDataverse, execTool, tokenize, BM25 };
+export { searchBailey, searchSpec, searchContracts, getJmf, queryDataverse, execTool, tokenize, BM25, toOpenAiMessages, callGrok };
