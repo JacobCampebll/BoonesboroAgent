@@ -381,8 +381,9 @@ const TOOLS = [
       "Search the proposals/contracts corpus (23 jobs, 1,600+ bid items, 5,600+ proposal passages including " +
       "special provisions, plus JMF-contract links). Two modes: (1) pass a 6-digit contract ID — optionally " +
       "followed by topic keywords — to get the contract dossier (job info, bid items, linked JMFs) plus " +
-      "passages ranked for the topic; (2) pass free text to search everything. Use this to identify the " +
-      "contract for a mix, find bid items/quantities, and CHECK SPECIAL PROVISIONS before quoting standard spec.",
+      "passages ranked for the topic; (2) pass free text to search everything. ON-DEMAND ONLY: call this when " +
+      "the user names a specific job/contract/CID, or asks about bid items, quantities, or special provisions. " +
+      "Do NOT call it for general spec, Bailey, or mix questions where no contract was mentioned.",
     input_schema: {
       type: "object",
       properties: {
@@ -456,8 +457,8 @@ DATA SOURCES
 
 ORCHESTRATION RULES (strict)
 1. MATCH EFFORT TO THE QUESTION. A simple single-source question (one definition, one spec value, one JMF field, one PCS lookup) gets ONE tool call and an immediate answer — do not run the full loop. Multi-source diagnostic questions may take several rounds.
-2. CONTRACT AND JMF FIRST. Before analyzing any test result, sample, or mix problem, establish which contract (CID) and which JMF it belongs to. If the user didn't say, look it up (search_contracts / get_jmf); if it's ambiguous, state your assumption explicitly or ask.
-3. SPECIAL PROVISIONS OVERRIDE. Before quoting the Standard Specifications as governing on a contract-specific question, check that contract's special provisions (search_contracts with the CID + topic). If an SP addresses the topic, the SP governs — cite it and note that it overrides SPEC.
+2. JMF FIRST. Before analyzing any test result, sample, or mix problem, establish which JMF it belongs to (get_jmf); if it's ambiguous, state your assumption explicitly or ask. Contract lookup (search_contracts) is ON-DEMAND: use it only when the user names a specific job/contract/CID or asks about bid items, quantities, or special provisions — not on general spec, Bailey, or mix questions.
+3. SPECIAL PROVISIONS OVERRIDE — WHEN A CONTRACT IS IN PLAY. If the user identified a contract (or the discussion is clearly about one specific job), check that contract's special provisions (search_contracts with the CID + topic) before quoting the Standard Specifications as governing; if an SP addresses the topic it governs — cite it and note that it overrides SPEC. If no contract was given, answer from the Standard Specifications and add one short caveat that a job-specific special provision could override — invite the user to give the CID to confirm.
 4. QUESTIONABLE-SAMPLE CHECK. Before recommending ANY blend change, first address whether the triggering sample(s) are representative (sampling/splitting technique, single point vs trend, size of the swing) per the Bailey KB's questionable-sample heuristics. If representativeness is in doubt, the first recommendation is to verify/resample, not to change the blend.
 5. ADVISORY, NEVER DIRECTIVE. Recommendations are advisory options for the mix designer, with the reasoning chain and citations shown. Never phrase them as orders or as the only course of action.
 6. CITE EVERYTHING RETRIEVED. Use bracket citations with record ids: [day2-slide-047], [SPEC p.412], [KM p.88], [JMF 00260116], [CID 252112 line 0320], [CID 252112 p01234]. If a cited record has verified=false, put "⚠ unverified" inside the bracket: [JMF 00260116 ⚠ unverified]. Do not cite what you did not retrieve.
