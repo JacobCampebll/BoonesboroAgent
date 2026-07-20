@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boonesboro Lab Agent — BT3</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Boonesboro Lab">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <style>
@@ -19,8 +27,10 @@
     display:flex;flex-direction:column}
   header{display:flex;align-items:center;gap:12px;padding:12px 20px;
     background:var(--bg);border-bottom:1px solid #ececec;flex:0 0 auto}
-  header .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+  header .logo{height:30px;width:auto;display:block;flex:0 0 auto}
+  header .hdiv{width:1px;height:30px;background:#e0e0e0;flex:0 0 auto}
   header h1{font-size:16px;margin:0;font-weight:600}
+  @media (max-width:560px){ header .sub{display:none} header .logo{height:26px} }
   header .sub{color:var(--muted);font-size:12.5px}
   header select{margin-left:auto;background:var(--bg);color:var(--text);border:1px solid #dcdcdc;
     border-radius:999px;padding:6px 12px;font:600 13px/1 inherit;cursor:pointer;outline:none}
@@ -101,10 +111,11 @@
 </head>
 <body>
 <header>
-  <div class="dot"></div>
+  <img class="logo" src="/allen-logo.svg" alt="The Allen Company">
+  <div class="hdiv"></div>
   <div>
     <h1>Boonesboro Lab Agent</h1>
-    <div class="sub">The Allen Company · Boonesborough Asphalt Plant (BT3) · Bailey KB · KYTC Specs/KM · Contracts · JMFs · Dataverse QC</div>
+    <div class="sub">Boonesborough Asphalt Plant (BT3) · Bailey KB · KYTC Specs/KM · Contracts · JMFs · Dataverse QC</div>
   </div>
   <select id="provider" title="Which AI model answers your questions">
     <option value="claude">Claude</option>
@@ -192,6 +203,12 @@
 <script>
 (function () {
   "use strict";
+  // PWA: register the service worker so the app is installable / works offline shell
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("/sw.js").catch(function () {});
+    });
+  }
   var ENDPOINT = "/.netlify/functions/agent";
   var log = document.getElementById("log");
   var input = document.getElementById("input");
