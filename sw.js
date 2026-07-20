@@ -4,8 +4,7 @@ const CACHE = "bt3-shell-v1";
 const SHELL = [
   "/",
   "/index.html",
-  "/allen-logo.svg",
-  "/icon.svg",
+  "/allen-logo.png",
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
