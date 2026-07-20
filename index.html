@@ -81,11 +81,19 @@
     border-radius:8px;padding:7px 9px;font:13.5px/1.4 inherit;color:var(--text);background:var(--bg);
     outline:none;box-sizing:border-box}
   .preset-form textarea{resize:vertical;min-height:44px}
-  .preset-form .sect{margin:8px 0 4px;font-size:11px;color:var(--muted);font-weight:600;display:block}
-  .preset-form .sieves{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-bottom:4px}
-  .preset-form .binhead,.preset-form .binrow{display:grid;grid-template-columns:64px 1fr 1fr;gap:8px}
+  .preset-form .sect{margin:6px 0 3px;font-size:11px;color:var(--muted);font-weight:600;display:block}
+  .preset-form .split{display:flex;gap:16px;align-items:flex-start}
+  .preset-form .split-left{flex:1 1 auto;min-width:0}
+  .preset-form .split-right{flex:0 0 175px}
+  .preset-form .svrow{display:grid;grid-template-columns:46px 1fr;gap:6px;align-items:center;margin-bottom:3px}
+  .preset-form .svrow label{margin:0;text-align:right;font-size:11.5px}
+  .preset-form .svrow input{padding:4px 8px;font-size:13px}
+  .preset-form .binhead,.preset-form .binrow{display:grid;grid-template-columns:56px 1fr 1fr;gap:6px}
   .preset-form .binhead span{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
-  .preset-form .binrow{margin-bottom:6px}
+  .preset-form .binrow{margin-bottom:4px}
+  .preset-form .binrow input{padding:5px 8px;font-size:13px}
+  .preset-form .split-left textarea{min-height:60px}
+  @media (max-width:640px){ .preset-form .split{flex-direction:column} .preset-form .split-right{flex:1 1 auto;width:100%} }
   .preset-form .row{display:flex;gap:8px;justify-content:flex-end}
   .preset-form .row button{padding:8px 16px;font-size:13px}
   .preset-form .row .ghost{background:none;color:var(--muted);border:1px solid #dcdcdc}
@@ -124,31 +132,36 @@
       <div><label>Gmb (BSG)</label><input id="mf-gmb" placeholder="2.419"></div>
       <div><label>AC % (burn-off)</label><input id="mf-ac" placeholder="6.0"></div>
     </div>
-    <label class="sect">Burn-off gradation (% passing) — leave blank any sieve you didn't run</label>
-    <div class="sieves">
-      <div><label>1"</label><input class="sv" data-sieve='1"'></div>
-      <div><label>3/4"</label><input class="sv" data-sieve='3/4"'></div>
-      <div><label>1/2"</label><input class="sv" data-sieve='1/2"'></div>
-      <div><label>3/8"</label><input class="sv" data-sieve='3/8"'></div>
-      <div><label>#4</label><input class="sv" data-sieve="#4"></div>
-      <div><label>#8</label><input class="sv" data-sieve="#8"></div>
-      <div><label>#16</label><input class="sv" data-sieve="#16"></div>
-      <div><label>#30</label><input class="sv" data-sieve="#30"></div>
-      <div><label>#50</label><input class="sv" data-sieve="#50"></div>
-      <div><label>#100</label><input class="sv" data-sieve="#100"></div>
-      <div><label>#200</label><input class="sv" data-sieve="#200"></div>
-      <div><label>Pan</label><input class="sv" data-sieve="Pan"></div>
-    </div>
-    <label class="sect">Current bin splits</label>
-    <div class="binhead"><span>%</span><span>Aggregate type</span><span>Location / source</span></div>
-    <div class="binrow"><input class="bin-pct" placeholder="44"><input class="bin-type" placeholder="#8s"><input class="bin-loc" placeholder="Haydon"></div>
-    <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="#10s washed"><input class="bin-loc"></div>
-    <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="natural sand"><input class="bin-loc"></div>
-    <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="RAP"><input class="bin-loc"></div>
-    <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
-    <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
-    <div class="grid" style="grid-template-columns:1fr;margin-top:8px">
-      <div><label>What's happening / drifting?</label><textarea id="mf-issue" placeholder="Voids came in low on the first test of the day..."></textarea></div>
+    <div class="split">
+      <div class="split-left">
+        <label class="sect">Current bin splits</label>
+        <div class="binhead"><span>%</span><span>Aggregate type</span><span>Location / source</span></div>
+        <div class="binrow"><input class="bin-pct" placeholder="44"><input class="bin-type" placeholder="#8s"><input class="bin-loc" placeholder="Haydon"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="#10s washed"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="natural sand"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="RAP"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+        <label class="sect">What's happening / drifting?</label>
+        <textarea id="mf-issue" placeholder="Voids came in low on the first test of the day..."></textarea>
+      </div>
+      <div class="split-right">
+        <label class="sect">Burn-off gradation (% passing)</label>
+        <div class="svrow"><label>2"</label><input class="sv" data-sieve='2"'></div>
+        <div class="svrow"><label>1 1/2"</label><input class="sv" data-sieve='1 1/2"'></div>
+        <div class="svrow"><label>1"</label><input class="sv" data-sieve='1"'></div>
+        <div class="svrow"><label>3/4"</label><input class="sv" data-sieve='3/4"'></div>
+        <div class="svrow"><label>1/2"</label><input class="sv" data-sieve='1/2"'></div>
+        <div class="svrow"><label>3/8"</label><input class="sv" data-sieve='3/8"'></div>
+        <div class="svrow"><label>#4</label><input class="sv" data-sieve="#4"></div>
+        <div class="svrow"><label>#8</label><input class="sv" data-sieve="#8"></div>
+        <div class="svrow"><label>#16</label><input class="sv" data-sieve="#16"></div>
+        <div class="svrow"><label>#30</label><input class="sv" data-sieve="#30"></div>
+        <div class="svrow"><label>#50</label><input class="sv" data-sieve="#50"></div>
+        <div class="svrow"><label>#100</label><input class="sv" data-sieve="#100"></div>
+        <div class="svrow"><label>#200</label><input class="sv" data-sieve="#200"></div>
+        <div class="svrow"><label>Pan</label><input class="sv" data-sieve="Pan"></div>
+      </div>
     </div>
     <div class="row">
       <button type="button" class="ghost" data-close="mixform">Cancel</button>
