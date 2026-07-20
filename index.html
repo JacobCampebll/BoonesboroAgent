@@ -81,6 +81,11 @@
     border-radius:8px;padding:7px 9px;font:13.5px/1.4 inherit;color:var(--text);background:var(--bg);
     outline:none;box-sizing:border-box}
   .preset-form textarea{resize:vertical;min-height:44px}
+  .preset-form .sect{margin:8px 0 4px;font-size:11px;color:var(--muted);font-weight:600;display:block}
+  .preset-form .sieves{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-bottom:4px}
+  .preset-form .binhead,.preset-form .binrow{display:grid;grid-template-columns:64px 1fr 1fr;gap:8px}
+  .preset-form .binhead span{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
+  .preset-form .binrow{margin-bottom:6px}
   .preset-form .row{display:flex;gap:8px;justify-content:flex-end}
   .preset-form .row button{padding:8px 16px;font-size:13px}
   .preset-form .row .ghost{background:none;color:var(--muted);border:1px solid #dcdcdc}
@@ -117,10 +122,32 @@
       <div><label>VMA %</label><input id="mf-vma" placeholder="15.2"></div>
       <div><label>Gmm (MSG)</label><input id="mf-gmm" placeholder="2.461"></div>
       <div><label>Gmb (BSG)</label><input id="mf-gmb" placeholder="2.419"></div>
+      <div><label>AC % (burn-off)</label><input id="mf-ac" placeholder="6.0"></div>
     </div>
-    <div class="grid" style="grid-template-columns:1fr">
-      <div><label>Burn-off gradation (% passing)</label><textarea id="mf-grad" placeholder="3/8: 91.4, #4: 58.3, #8: 36.5, #16: 24.1, #30: 16.6, #50: 10.2, #100: 7.0, #200: 5.4"></textarea></div>
-      <div><label>Current bin splits</label><textarea id="mf-bins" placeholder="10s washed 17%, natural sand 13%, RAP 13%, Haydon 8s 44%, Haydon 10s 13%, AC 6.0%"></textarea></div>
+    <label class="sect">Burn-off gradation (% passing) — leave blank any sieve you didn't run</label>
+    <div class="sieves">
+      <div><label>1"</label><input class="sv" data-sieve='1"'></div>
+      <div><label>3/4"</label><input class="sv" data-sieve='3/4"'></div>
+      <div><label>1/2"</label><input class="sv" data-sieve='1/2"'></div>
+      <div><label>3/8"</label><input class="sv" data-sieve='3/8"'></div>
+      <div><label>#4</label><input class="sv" data-sieve="#4"></div>
+      <div><label>#8</label><input class="sv" data-sieve="#8"></div>
+      <div><label>#16</label><input class="sv" data-sieve="#16"></div>
+      <div><label>#30</label><input class="sv" data-sieve="#30"></div>
+      <div><label>#50</label><input class="sv" data-sieve="#50"></div>
+      <div><label>#100</label><input class="sv" data-sieve="#100"></div>
+      <div><label>#200</label><input class="sv" data-sieve="#200"></div>
+      <div><label>Pan</label><input class="sv" data-sieve="Pan"></div>
+    </div>
+    <label class="sect">Current bin splits</label>
+    <div class="binhead"><span>%</span><span>Aggregate type</span><span>Location / source</span></div>
+    <div class="binrow"><input class="bin-pct" placeholder="44"><input class="bin-type" placeholder="#8s"><input class="bin-loc" placeholder="Haydon"></div>
+    <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="#10s washed"><input class="bin-loc"></div>
+    <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="natural sand"><input class="bin-loc"></div>
+    <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="RAP"><input class="bin-loc"></div>
+    <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+    <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+    <div class="grid" style="grid-template-columns:1fr;margin-top:8px">
       <div><label>What's happening / drifting?</label><textarea id="mf-issue" placeholder="Voids came in low on the first test of the day..."></textarea></div>
     </div>
     <div class="row">
@@ -399,9 +426,22 @@
     if (v("mf-vma")) res.push("VMA " + v("mf-vma") + "%");
     if (v("mf-gmm")) res.push("Gmm " + v("mf-gmm"));
     if (v("mf-gmb")) res.push("Gmb " + v("mf-gmb"));
+    if (v("mf-ac")) res.push("AC (burn-off) " + v("mf-ac") + "%");
     if (res.length) lines.push("Results: " + res.join(", "));
-    if (v("mf-grad")) lines.push("Burn-off gradation (% passing): " + v("mf-grad"));
-    if (v("mf-bins")) lines.push("Current bin splits: " + v("mf-bins"));
+    var sieves = [];
+    document.querySelectorAll("#mixform .sv").forEach(function (s) {
+      if (s.value.trim()) sieves.push(s.getAttribute("data-sieve") + ": " + s.value.trim());
+    });
+    if (sieves.length) lines.push("Burn-off gradation (% passing): " + sieves.join(", "));
+    var bins = [];
+    document.querySelectorAll("#mixform .binrow").forEach(function (r) {
+      var pct = r.querySelector(".bin-pct").value.trim();
+      var typ = r.querySelector(".bin-type").value.trim();
+      var loc = r.querySelector(".bin-loc").value.trim();
+      if (!pct && !typ && !loc) return;
+      bins.push((pct ? pct + "%" : "?%") + (typ ? " " + typ : "") + (loc ? " (" + loc + ")" : ""));
+    });
+    if (bins.length) lines.push("Current bin splits: " + bins.join(", "));
     if (v("mf-issue")) lines.push("What's happening: " + v("mf-issue"));
     lines.push("What changes should I make, if any?");
     composeToInput(lines.join("\n"));
