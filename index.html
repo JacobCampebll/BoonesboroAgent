@@ -69,6 +69,21 @@
   button:disabled{background:#e0e0e0;color:#9a9a9a;cursor:default}
   button.stop{background:#d64545;color:#fff}
   .hint{color:#b0b0b0;font-size:11.5px;margin-top:6px;text-align:center}
+  .presets{display:flex;gap:8px;margin:0 0 8px}
+  .pchip{background:var(--panel);color:var(--text);border:1px solid #dcdcdc;border-radius:999px;
+    padding:7px 14px;font:600 12.5px/1 inherit;cursor:pointer}
+  .pchip:hover{background:#ececec}
+  .preset-form{background:var(--bg);border:1px solid #dcdcdc;border-radius:16px;padding:14px;
+    margin:0 0 10px;box-shadow:0 2px 14px rgba(0,0,0,.05)}
+  .preset-form .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px}
+  .preset-form label{display:block;font-size:11px;color:var(--muted);margin:0 0 3px;font-weight:600}
+  .preset-form input,.preset-form textarea,.preset-form select{width:100%;border:1px solid #e0e0e0;
+    border-radius:8px;padding:7px 9px;font:13.5px/1.4 inherit;color:var(--text);background:var(--bg);
+    outline:none;box-sizing:border-box}
+  .preset-form textarea{resize:vertical;min-height:44px}
+  .preset-form .row{display:flex;gap:8px;justify-content:flex-end}
+  .preset-form .row button{padding:8px 16px;font-size:13px}
+  .preset-form .row .ghost{background:none;color:var(--muted);border:1px solid #dcdcdc}
 </style>
 </head>
 <body>
@@ -87,6 +102,47 @@
 <div id="log"></div>
 
 <footer>
+  <div class="presets">
+    <button type="button" class="pchip" data-form="mixform">🔧 Mix change</button>
+    <button type="button" class="pchip" data-form="logform">📓 Log it</button>
+  </div>
+
+  <div id="mixform" class="preset-form" hidden>
+    <div class="grid">
+      <div><label>Mix / JMF #</label><input id="mf-mix" placeholder="00260116 or CL4 0.38A"></div>
+      <div><label>Contract #</label><input id="mf-cid" placeholder="251026"></div>
+      <div><label>Tons into production</label><input id="mf-tons" placeholder="100"></div>
+      <div><label>Sample basis</label><select id="mf-basis"><option value="">—</option><option>Single sample</option><option>Trend (multiple samples)</option></select></div>
+      <div><label>Air voids (Va %)</label><input id="mf-va" placeholder="1.7"></div>
+      <div><label>VMA %</label><input id="mf-vma" placeholder="15.2"></div>
+      <div><label>Gmm (MSG)</label><input id="mf-gmm" placeholder="2.461"></div>
+      <div><label>Gmb (BSG)</label><input id="mf-gmb" placeholder="2.419"></div>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div><label>Burn-off gradation (% passing)</label><textarea id="mf-grad" placeholder="3/8: 91.4, #4: 58.3, #8: 36.5, #16: 24.1, #30: 16.6, #50: 10.2, #100: 7.0, #200: 5.4"></textarea></div>
+      <div><label>Current bin splits</label><textarea id="mf-bins" placeholder="10s washed 17%, natural sand 13%, RAP 13%, Haydon 8s 44%, Haydon 10s 13%, AC 6.0%"></textarea></div>
+      <div><label>What's happening / drifting?</label><textarea id="mf-issue" placeholder="Voids came in low on the first test of the day..."></textarea></div>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost" data-close="mixform">Cancel</button>
+      <button type="button" id="mf-go">Add to message</button>
+    </div>
+  </div>
+
+  <div id="logform" class="preset-form" hidden>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div><label>What happened? (result, decision, change)</label><textarea id="lf-entry" placeholder="Resample on 251026 came back 3.4 Va — original sample wasn't representative. No blend change."></textarea></div>
+    </div>
+    <div class="grid">
+      <div><label>Mix / JMF # (optional)</label><input id="lf-mix" placeholder="00260116"></div>
+      <div><label>Contract # (optional)</label><input id="lf-cid" placeholder="251026"></div>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost" data-close="logform">Cancel</button>
+      <button type="button" id="lf-go">Add to message</button>
+    </div>
+  </div>
+
   <div class="composer">
     <textarea id="input" rows="2" placeholder="Ask about a mix, a spec requirement, a contract, a JMF, or QC data…"></textarea>
     <button id="send">Send</button>
@@ -307,6 +363,57 @@
   });
   function autoGrow(){ input.style.height="auto"; input.style.height=Math.min(input.scrollHeight,180)+"px"; }
   input.addEventListener("input", autoGrow);
+
+  // ---------- preset forms ----------
+  function $(id){ return document.getElementById(id); }
+  function hideForms(){ ["mixform","logform"].forEach(function(id){ $(id).hidden = true; }); }
+  document.querySelectorAll(".pchip").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var f = $(chip.getAttribute("data-form"));
+      var wasHidden = f.hidden;
+      hideForms();
+      f.hidden = !wasHidden;
+      if (!f.hidden) { var first = f.querySelector("input,textarea"); if (first) first.focus(); }
+    });
+  });
+  document.querySelectorAll("[data-close]").forEach(function (btn) {
+    btn.addEventListener("click", function(){ $(btn.getAttribute("data-close")).hidden = true; });
+  });
+  function composeToInput(text){
+    input.value = text;
+    hideForms();
+    autoGrow();
+    input.focus();
+  }
+  $("mf-go").addEventListener("click", function () {
+    var v = function(id){ return $(id).value.trim(); };
+    var lines = ["Mix change help needed."];
+    var head = [];
+    if (v("mf-mix")) head.push("Mix/JMF: " + v("mf-mix"));
+    if (v("mf-cid")) head.push("Contract: " + v("mf-cid"));
+    if (v("mf-tons")) head.push("Tons into production: " + v("mf-tons"));
+    if (head.length) lines.push(head.join(" | "));
+    if (v("mf-basis")) lines.push("Sample basis: " + v("mf-basis"));
+    var res = [];
+    if (v("mf-va")) res.push("Va " + v("mf-va") + "%");
+    if (v("mf-vma")) res.push("VMA " + v("mf-vma") + "%");
+    if (v("mf-gmm")) res.push("Gmm " + v("mf-gmm"));
+    if (v("mf-gmb")) res.push("Gmb " + v("mf-gmb"));
+    if (res.length) lines.push("Results: " + res.join(", "));
+    if (v("mf-grad")) lines.push("Burn-off gradation (% passing): " + v("mf-grad"));
+    if (v("mf-bins")) lines.push("Current bin splits: " + v("mf-bins"));
+    if (v("mf-issue")) lines.push("What's happening: " + v("mf-issue"));
+    lines.push("What changes should I make, if any?");
+    composeToInput(lines.join("\n"));
+  });
+  $("lf-go").addEventListener("click", function () {
+    var entry = $("lf-entry").value.trim();
+    if (!entry) { $("lf-entry").focus(); return; }
+    var ctx = [];
+    if ($("lf-mix").value.trim()) ctx.push("Mix: " + $("lf-mix").value.trim());
+    if ($("lf-cid").value.trim()) ctx.push("Contract: " + $("lf-cid").value.trim());
+    composeToInput("Log this in the plant log: " + entry + (ctx.length ? " (" + ctx.join(", ") + ")" : ""));
+  });
 
   // welcome note
   var w = el("div","turn",log);
