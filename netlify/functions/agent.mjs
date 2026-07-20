@@ -339,6 +339,73 @@ async function queryDataverse({ question }) {
 // Tool definitions for Claude
 // =============================================================================
 
+// =============================================================================
+// Plant log — persistent memory via Netlify Blobs (in-memory fallback locally)
+// =============================================================================
+
+const LOG_KEY = "entries";
+const LOG_MAX_ENTRIES = 500;
+const memoryLogFallback = { entries: null }; // used when Blobs is unavailable
+
+async function getLogStore() {
+  try {
+    const blobs = await import("@netlify/blobs");
+    return blobs.getStore({ name: "plant-log", consistency: "strong" });
+  } catch {
+    return null;
+  }
+}
+
+async function plantLog(input) {
+  const action = input && input.action;
+  const store = await getLogStore();
+  let entries = null;
+  if (store) {
+    try { entries = await store.get(LOG_KEY, { type: "json" }); } catch { /* fall through */ }
+  }
+  const persistent = entries !== null && entries !== undefined || !!store;
+  if (!Array.isArray(entries)) entries = memoryLogFallback.entries || [];
+
+  if (action === "write") {
+    const text = String(input.entry || "").trim().slice(0, 2000);
+    if (!text) return { error: "write requires a non-empty 'entry'." };
+    const tags = Array.isArray(input.tags) ? input.tags.map((t) => String(t).slice(0, 40)).slice(0, 8) : [];
+    entries.push({ ts: new Date().toISOString(), text, tags });
+    entries = entries.slice(-LOG_MAX_ENTRIES);
+    let persisted = false;
+    if (store) {
+      try { await store.setJSON(LOG_KEY, entries); persisted = true; } catch { /* fall through */ }
+    }
+    if (!persisted) memoryLogFallback.entries = entries;
+    return {
+      status: "logged",
+      entry_count: entries.length,
+      persisted,
+      note: persisted ? "Entry saved to the persistent plant log." : "Persistent store unavailable — entry kept for this session only; tell the user.",
+    };
+  }
+
+  // read (default)
+  let list = entries.slice().reverse(); // newest first
+  const qToks = tokenize(input && input.query);
+  if (qToks.length) {
+    list = list.filter((e) => {
+      const toks = new Set(tokenize(e.text + " " + (e.tags || []).join(" ")));
+      return qToks.some((t) => toks.has(t));
+    });
+  }
+  const limit = Math.min(Math.max((input && input.limit) || 10, 1), 50);
+  const shown = list.slice(0, limit);
+  return {
+    total_entries: entries.length,
+    matched: list.length,
+    shown: shown.length,
+    persistent_store: !!store,
+    entries: shown.map((e) => ({ ts: e.ts, text: e.text, tags: e.tags || [] })),
+    note: entries.length === 0 ? "The plant log is empty — nothing has been recorded yet." : undefined,
+  };
+}
+
 const TOOLS = [
   {
     name: "search_bailey",
@@ -422,6 +489,28 @@ const TOOLS = [
       required: ["question"],
     },
   },
+  {
+    name: "plant_log",
+    description:
+      "The plant's persistent logbook (BT3 memory that survives across conversations and users). " +
+      "action='read': retrieve recent entries, newest first; optional keyword query (mix ids, CIDs, topics) and limit. " +
+      "action='write': record ONE short factual entry about a notable plant event — a test result, a decision made, " +
+      "a resample outcome, a blend change, a correction from the user. READ it whenever a question involves recent " +
+      "plant history ('has this happened before', 'what did we decide about...', troubleshooting a mix that may have " +
+      "prior entries). WRITE sparingly: only concrete facts the user reported or decisions reached — never speculation, " +
+      "never reference material from the other sources, never duplicates. Tag entries with mix/CID when known.",
+    input_schema: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["read", "write"] },
+        query: { type: "string", description: "read: optional keyword filter, e.g. '00260116 air voids' or '251026'." },
+        limit: { type: "integer", description: "read: max entries to return. Default 10, max 50." },
+        entry: { type: "string", description: "write: one short factual entry, e.g. 'CL4 0.38A on CID 251026 hit 1.7% Va at 100 tons; recommended resample before blend change.'" },
+        tags: { type: "array", items: { type: "string" }, description: "write: optional tags, e.g. ['00260116','251026','air-voids']." },
+      },
+      required: ["action"],
+    },
+  },
 ];
 
 async function execTool(name, input) {
@@ -433,6 +522,7 @@ async function execTool(name, input) {
       case "search_contracts": payload = searchContracts(input); break;
       case "get_jmf": payload = getJmf(input); break;
       case "query_dataverse": payload = await queryDataverse(input); break;
+      case "plant_log": payload = await plantLog(input); break;
       default: return { ok: false, text: `Unknown tool: ${name}` };
     }
     const ok = !(payload && (payload.error || payload.status === "error"));
@@ -446,7 +536,7 @@ async function execTool(name, input) {
 // System prompt — orchestration doctrine
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are the Boonesboro Lab Agent — the combined QC / mix-design assistant for The Allen Company's Boonesborough Asphalt Plant (plant folder BT3). You serve the plant's lab techs and mix designers. You are ONE agent with five retrieval tools; you decide what to retrieve and you do the analysis yourself.
+const SYSTEM_PROMPT = `You are the Boonesboro Lab Agent — the combined QC / mix-design assistant for The Allen Company's Boonesborough Asphalt Plant (plant folder BT3). You serve the plant's lab techs and mix designers. You are ONE agent with six tools; you decide what to retrieve and you do the analysis yourself.
 
 DATA SOURCES
 - search_bailey: Bailey Method KB (course slides, heuristics, worked examples). Aggregate packing & blend reasoning.
@@ -454,6 +544,7 @@ DATA SOURCES
 - search_contracts: proposals index (jobs, bid items, special provisions) + JMF↔contract links.
 - get_jmf: approved mix designs for THIS plant (gradations, bins, volumetrics, targets).
 - query_dataverse: live QC sample data (may be unavailable — pending IT access).
+- plant_log: THIS PLANT'S PERSISTENT MEMORY — a logbook of past events, results, and decisions that survives across conversations.
 
 ORCHESTRATION RULES (strict)
 1. MATCH EFFORT TO THE QUESTION. A simple single-source question (one definition, one spec value, one JMF field, one PCS lookup) gets ONE tool call and an immediate answer — do not run the full loop. Multi-source diagnostic questions may take several rounds.
@@ -466,6 +557,7 @@ ORCHESTRATION RULES (strict)
 8. ANSWER ONLY THE LATEST USER MESSAGE. Earlier turns are context only; never re-answer or re-retrieve for stale questions.
 9. FAILURES ARE SURFACED, NEVER PAPERED OVER. If a tool fails, times out, or a source is unavailable (e.g. Dataverse pending IT access), answer with what you did retrieve and state plainly what's missing and how that limits the answer. Never fabricate data or citations.
 10. RAW DATA ONLY FROM DATAVERSE. When calling query_dataverse, request raw rows/values (specific samples, sieves, fields, date ranges) — never interpretations. Analysis is your job.
+11. PLANT MEMORY. Read the plant_log when a question involves recent plant history, a recurring problem, or a past decision (e.g. troubleshooting a mix that may have prior entries — check for the mix/CID before analyzing). Write to it when the user reports a concrete result, event, or decision, or corrects something you said: ONE short factual entry, tagged with mix/CID, and tell the user what you logged. Never log speculation, retrieved reference content, or near-duplicates of existing entries. If the log tool reports the persistent store is unavailable, tell the user the entry won't survive past this session.
 
 ANSWER FORMAT (every final answer)
 1. Open with "**Bottom line:**" — 1 to 4 plain-language sentences a tech can act on without reading anything else: the direct answer, the governing value, or the recommended next step (including "verify/resample first" when that's the real first step). No jargon that isn't necessary, no citations here.
@@ -788,4 +880,4 @@ export default async (req) => {
 };
 
 // Named exports for local smoke-testing only (ignored by Netlify)
-export { searchBailey, searchSpec, searchContracts, getJmf, queryDataverse, execTool, tokenize, BM25, toOpenAiMessages, callGrok };
+export { searchBailey, searchSpec, searchContracts, getJmf, queryDataverse, plantLog, execTool, tokenize, BM25, toOpenAiMessages, callGrok };

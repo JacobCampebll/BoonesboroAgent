@@ -179,7 +179,7 @@
 
   function summarizeInput(input) {
     try {
-      var v = input.query || input.query_or_cid || input.jmf_number_or_cid || input.question || JSON.stringify(input);
+      var v = input.query || input.query_or_cid || input.jmf_number_or_cid || input.question || input.entry || input.action || JSON.stringify(input);
       return String(v);
     } catch(e){ return ""; }
   }
@@ -311,7 +311,7 @@
   // welcome note
   var w = el("div","turn",log);
   var wb = el("div","agent",w);
-  wb.innerHTML = '<div class="answer"><p><strong>Boonesboro Lab Agent</strong> — one agent, five sources: Bailey Method KB, KYTC Standard Specs &amp; Kentucky Methods, contract proposals/special provisions, plant JMFs, and (pending IT hookup) live Dataverse QC data.</p><p style="color:var(--muted);font-size:13.5px">Examples: “What are the JMF targets and bin splits for 00260116?” · “Does contract 252112 have any special provisions on surface mixtures?” · “Our 0.38A is running fine on the 8 — should we bump the #8 bin?”</p></div>';
+  wb.innerHTML = '<div class="answer"><p><strong>Boonesboro Lab Agent</strong> — one agent, six tools: Bailey Method KB, KYTC Standard Specs &amp; Kentucky Methods, contract proposals/special provisions, plant JMFs, (pending IT hookup) live Dataverse QC data, and a persistent plant logbook that remembers results and decisions across conversations.</p><p style="color:var(--muted);font-size:13.5px">Examples: “What are the JMF targets and bin splits for 00260116?” · “Does contract 252112 have any special provisions on surface mixtures?” · “Log that the 251026 resample came back at 3.4 Va” · “Has the 0.38A run low on voids before?”</p></div>';
 
   input.focus();
 })();
