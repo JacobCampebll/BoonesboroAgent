@@ -128,13 +128,16 @@
 <footer>
   <div class="presets">
     <button type="button" class="pchip" data-form="mixform">🔧 Mix change</button>
+    <button type="button" class="pchip" data-form="scform">✅ Spec check</button>
+    <button type="button" class="pchip" data-form="pfform">💵 Pay factor</button>
+    <button type="button" class="pchip" data-form="spform">📋 Provisions</button>
     <button type="button" class="pchip" data-form="logform">📓 Log it</button>
   </div>
 
   <div id="mixform" class="preset-form" hidden>
     <div class="grid">
       <div><label>Mix design</label>
-        <select id="mf-mix"><option value="">Loading mixes…</option></select>
+        <select id="mf-mix" class="mix-select"><option value="">Loading mixes…</option></select>
         <input id="mf-mix-other" placeholder="Type the mix name" style="display:none;margin-top:6px">
       </div>
       <div><label>Contract #</label><input id="mf-cid"></div>
@@ -193,6 +196,91 @@
     <div class="row">
       <button type="button" class="ghost" data-close="logform">Cancel</button>
       <button type="button" id="lf-go">Add to message</button>
+    </div>
+  </div>
+
+  <div id="scform" class="preset-form" hidden>
+    <div class="grid">
+      <div><label>Mix design</label>
+        <select id="sc-mix" class="mix-select"><option value="">Loading mixes…</option></select>
+        <input id="sc-mix-other" placeholder="Type the mix name" style="display:none;margin-top:6px">
+      </div>
+      <div><label>Contract #</label><input id="sc-cid"></div>
+      <div><label>Sublot / sample #</label><input id="sc-sublot"></div>
+      <div><label>Sample basis</label><select id="sc-basis"><option value="">—</option><option>Single sample</option><option>Trend (multiple samples)</option></select></div>
+      <div><label>Air voids (Va %)</label><input id="sc-va"></div>
+      <div><label>VMA %</label><input id="sc-vma"></div>
+      <div><label>Gmm (MSG)</label><input id="sc-gmm"></div>
+      <div><label>Gmb (BSG)</label><input id="sc-gmb"></div>
+      <div><label>AC % (burn-off)</label><input id="sc-ac"></div>
+    </div>
+    <div class="split">
+      <div class="split-left">
+        <label class="sect">How the check works</label>
+        <p style="font-size:12px;color:var(--muted);margin:2px 0 0">Pick the mix so the agent knows which JMF's tolerances to use, then enter today's <em>actual</em> results and burn-off. Blank sieves are skipped. You get pass/fail per property with the margin, plus a check against this contract's special provisions.</p>
+      </div>
+      <div class="split-right">
+        <label class="sect">Measured gradation (% passing)</label>
+        <div class="svrow"><label>2"</label><input class="sv" data-sieve='2"'></div>
+        <div class="svrow"><label>1 1/2"</label><input class="sv" data-sieve='1 1/2"'></div>
+        <div class="svrow"><label>1"</label><input class="sv" data-sieve='1"'></div>
+        <div class="svrow"><label>3/4"</label><input class="sv" data-sieve='3/4"'></div>
+        <div class="svrow"><label>1/2"</label><input class="sv" data-sieve='1/2"'></div>
+        <div class="svrow"><label>3/8"</label><input class="sv" data-sieve='3/8"'></div>
+        <div class="svrow"><label>#4</label><input class="sv" data-sieve="#4"></div>
+        <div class="svrow"><label>#8</label><input class="sv" data-sieve="#8"></div>
+        <div class="svrow"><label>#16</label><input class="sv" data-sieve="#16"></div>
+        <div class="svrow"><label>#30</label><input class="sv" data-sieve="#30"></div>
+        <div class="svrow"><label>#50</label><input class="sv" data-sieve="#50"></div>
+        <div class="svrow"><label>#100</label><input class="sv" data-sieve="#100"></div>
+        <div class="svrow"><label>#200</label><input class="sv" data-sieve="#200"></div>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost" data-close="scform">Cancel</button>
+      <button type="button" id="sc-go">Add to message</button>
+    </div>
+  </div>
+
+  <div id="spform" class="preset-form" hidden>
+    <div class="grid">
+      <div><label>Contract #</label><input id="sp-cid"></div>
+      <div><label>Topic</label><select id="sp-topic">
+        <option value="">Any / general</option>
+        <option>Surface mixtures</option>
+        <option>Air voids target</option>
+        <option>RAP &amp; recycled materials</option>
+        <option>Antistrip additive</option>
+        <option>Longitudinal joint density</option>
+        <option>In-place / mat density</option>
+        <option>Materials &amp; sources</option>
+        <option>Warranty</option>
+      </select></div>
+      <div><label>Mix type / item (optional)</label><input id="sp-mixtype"></div>
+    </div>
+    <div class="row">
+      <button type="button" class="ghost" data-close="spform">Cancel</button>
+      <button type="button" id="sp-go">Add to message</button>
+    </div>
+  </div>
+
+  <div id="pfform" class="preset-form" hidden>
+    <div class="grid">
+      <div><label>Mix design</label>
+        <select id="pf-mix" class="mix-select"><option value="">Loading mixes…</option></select>
+        <input id="pf-mix-other" placeholder="Type the mix type" style="display:none;margin-top:6px">
+      </div>
+      <div><label>Contract #</label><input id="pf-cid"></div>
+      <div><label>Lot tonnage (optional)</label><input id="pf-tons"></div>
+      <div><label>Air voids by sublot (Va %) — comma-separated</label><input id="pf-va" placeholder="3.6, 4.1, 3.9, 4.4"></div>
+      <div><label>In-place density (% of Gmm)</label><input id="pf-dens"></div>
+      <div><label>AC content (%)</label><input id="pf-ac"></div>
+      <div><label>VMA % (optional)</label><input id="pf-vma"></div>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin:2px 2px 10px">Pick the mix, enter the lot's results — the agent pulls the KYTC pay-adjustment schedule (Section 402 + any contract special provision) and estimates the pay factor with the table values and math shown. Advisory estimate — verify against the controlling documents.</p>
+    <div class="row">
+      <button type="button" class="ghost" data-close="pfform">Cancel</button>
+      <button type="button" id="pf-go">Add to message</button>
     </div>
   </div>
 
@@ -432,7 +520,8 @@
       var wasHidden = f.hidden;
       hideForms();
       f.hidden = !wasHidden;
-      if (!f.hidden && chip.getAttribute("data-form") === "mixform") loadMixes();
+      var df = chip.getAttribute("data-form");
+      if (!f.hidden && (df === "mixform" || df === "scform" || df === "pfform")) loadMixes();
       if (!f.hidden) { var first = f.querySelector("input,textarea"); if (first) first.focus(); }
     });
   });
@@ -446,24 +535,27 @@
       .then(function (r) { return r.json(); })
       .then(function (d) { populateMixes(d.mixes || []); })
       .catch(function () {
-        $("mf-mix").innerHTML = '<option value="">(mix list unavailable)</option><option value="other">Type it manually</option>';
+        document.querySelectorAll("select.mix-select").forEach(function (s) {
+          s.innerHTML = '<option value="">(mix list unavailable)</option><option value="other">Type it manually</option>';
+        });
       });
   }
   function populateMixes(list) {
     MIXES = list;
-    $("mf-mix").innerHTML =
-      '<option value="">— pick a mix design —</option>' +
+    var html = '<option value="">— pick a mix design —</option>' +
       list.map(function (m, i) { return '<option value="' + i + '">' + esc(m.name) + "</option>"; }).join("") +
       '<option value="other">Other / not listed</option>';
+    document.querySelectorAll("select.mix-select").forEach(function (s) { s.innerHTML = html; });
   }
-  function selectedMix() {
-    var v = $("mf-mix").value;
+  function selectedMix(sel) {
+    var el = $(sel);
+    var v = el ? el.value : "";
     return (MIXES && v !== "" && v !== "other") ? MIXES[+v] : null;
   }
   $("mf-mix").addEventListener("change", function () {
     var other = $("mf-mix").value === "other";
     $("mf-mix-other").style.display = other ? "block" : "none";
-    var m = selectedMix();
+    var m = selectedMix("mf-mix");
     if (!m) return;
     // bins from the mix pack (tech edits to actual plant settings)
     var rows = document.querySelectorAll("#mixform .binrow");
@@ -494,7 +586,7 @@
     var v = function(id){ return $(id).value.trim(); };
     var lines = ["Mix change help needed."];
     var head = [];
-    var mix = selectedMix();
+    var mix = selectedMix("mf-mix");
     if (mix) head.push("Mix design: " + mix.name + " (JMF " + mix.id + ")");
     else if ($("mf-mix").value === "other" && v("mf-mix-other")) head.push("Mix design: " + v("mf-mix-other"));
     if (v("mf-cid")) head.push("Contract: " + v("mf-cid"));
@@ -541,6 +633,95 @@
     if ($("lf-mix").value.trim()) ctx.push("Mix: " + $("lf-mix").value.trim());
     if ($("lf-cid").value.trim()) ctx.push("Contract: " + $("lf-cid").value.trim());
     composeToInput("Log this in the plant log: " + entry + (ctx.length ? " (" + ctx.join(", ") + ")" : ""));
+  });
+
+  // shared: append "Mix design" + design-targets lines from a mix-select
+  function pushMixHead(head, lines, selId, otherId) {
+    var mix = selectedMix(selId);
+    if (mix) head.push("Mix design: " + mix.name + " (JMF " + mix.id + ")");
+    else if ($(selId).value === "other" && $(otherId).value.trim()) head.push("Mix design: " + $(otherId).value.trim());
+    return mix;
+  }
+  function pushTargets(lines, mix) {
+    if (!mix) return;
+    var tgt = [];
+    if (mix.gmm != null) tgt.push("Gmm " + mix.gmm);
+    if (mix.ac != null) tgt.push("AC " + mix.ac + "%");
+    if (mix.va != null) tgt.push("Va " + mix.va + "%");
+    if (mix.rap != null) tgt.push("RAP " + mix.rap + "%");
+    if (tgt.length) lines.push("Design targets (mix pack " + mix.id + "): " + tgt.join(", "));
+  }
+  // free-text "Other" toggles for the extra mix-selects
+  $("sc-mix").addEventListener("change", function () {
+    $("sc-mix-other").style.display = $("sc-mix").value === "other" ? "block" : "none";
+  });
+  $("pf-mix").addEventListener("change", function () {
+    $("pf-mix-other").style.display = $("pf-mix").value === "other" ? "block" : "none";
+  });
+
+  // ---------- Spec check (acceptance) ----------
+  $("sc-go").addEventListener("click", function () {
+    var v = function(id){ return $(id).value.trim(); };
+    var lines = ["Spec / acceptance check."];
+    var head = [];
+    var mix = pushMixHead(head, lines, "sc-mix", "sc-mix-other");
+    if (v("sc-cid")) head.push("Contract: " + v("sc-cid"));
+    if (v("sc-sublot")) head.push("Sublot/sample: " + v("sc-sublot"));
+    if (head.length) lines.push(head.join(" | "));
+    pushTargets(lines, mix);
+    if (v("sc-basis")) lines.push("Sample basis: " + v("sc-basis"));
+    var res = [];
+    if (v("sc-va")) res.push("Va " + v("sc-va") + "%");
+    if (v("sc-vma")) res.push("VMA " + v("sc-vma") + "%");
+    if (v("sc-gmm")) res.push("Gmm " + v("sc-gmm"));
+    if (v("sc-gmb")) res.push("Gmb " + v("sc-gmb"));
+    if (v("sc-ac")) res.push("AC (burn-off) " + v("sc-ac") + "%");
+    if (res.length) lines.push("Measured results: " + res.join(", "));
+    var sieves = [];
+    document.querySelectorAll("#scform .sv").forEach(function (s) {
+      if (s.value.trim()) sieves.push(s.getAttribute("data-sieve") + ": " + s.value.trim());
+    });
+    if (sieves.length) lines.push("Measured gradation (% passing): " + sieves.join(", "));
+    lines.push("Am I within the JMF production tolerances and this contract's special provisions? Give pass/fail on each property (gradation, AC, Va, VMA) with the margin to the limit, and flag anything out of tolerance.");
+    composeToInput(lines.join("\n"));
+  });
+
+  // ---------- Special provisions lookup ----------
+  $("sp-go").addEventListener("click", function () {
+    var v = function(id){ return $(id).value.trim(); };
+    if (!v("sp-cid")) { $("sp-cid").focus(); return; }
+    var lines = ["Special-provisions lookup."];
+    var head = ["Contract: " + v("sp-cid")];
+    if (v("sp-topic")) head.push("Topic: " + v("sp-topic"));
+    if (v("sp-mixtype")) head.push("Mix type/item: " + v("sp-mixtype"));
+    lines.push(head.join(" | "));
+    lines.push("What special provisions in this contract's proposal override or add to the KYTC Standard Specs" +
+      (v("sp-topic") ? " for " + v("sp-topic").toLowerCase() : "") +
+      "? Quote the special-provision language and cite where it comes from. If there are none, say so and give the Standard Spec default.");
+    composeToInput(lines.join("\n"));
+  });
+
+  // ---------- Pay factor estimate ----------
+  $("pf-go").addEventListener("click", function () {
+    var v = function(id){ return $(id).value.trim(); };
+    var lines = ["Pay-factor estimate."];
+    var head = [];
+    var mix = pushMixHead(head, lines, "pf-mix", "pf-mix-other");
+    if (v("pf-cid")) head.push("Contract: " + v("pf-cid"));
+    if (v("pf-tons")) head.push("Lot tonnage: " + v("pf-tons"));
+    if (head.length) lines.push(head.join(" | "));
+    pushTargets(lines, mix);
+    var res = [];
+    if (v("pf-va")) res.push("Air voids by sublot: " + v("pf-va") + " %");
+    if (v("pf-dens")) res.push("In-place density: " + v("pf-dens") + " % of Gmm");
+    if (v("pf-ac")) res.push("AC content: " + v("pf-ac") + " %");
+    if (v("pf-vma")) res.push("VMA: " + v("pf-vma") + " %");
+    if (res.length) lines.push("Measured: " + res.join(" | "));
+    lines.push("Using the KYTC pay-adjustment schedule for this mix type, estimate the pay factor / pay adjustment. " +
+      "Pull the applicable pay tables from the specs (Section 402 and any contract special provision that changes them), " +
+      "show which quality characteristics are evaluated, the table values used, and the math. Give the estimated pay factor " +
+      "and flag any characteristic sitting in a penalty or bonus band. This is an advisory estimate — verify against the controlling documents.");
+    composeToInput(lines.join("\n"));
   });
 
   // welcome note
