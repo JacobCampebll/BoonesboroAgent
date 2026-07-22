@@ -993,6 +993,21 @@ function contractDetail(cid) {
   };
 }
 
+// One-shot maintenance wipe of the plant log. Reachable ONLY via the key-protected
+// admin HTTP endpoint below — never exposed to the model as a tool action.
+async function clearLog() {
+  const store = await getLogStore();
+  if (store) {
+    let prev = 0;
+    try { const e = await store.get(LOG_KEY, { type: "json" }); if (Array.isArray(e)) prev = e.length; } catch { /* ignore */ }
+    try { await store.setJSON(LOG_KEY, []); } catch { return { error: "store write failed" }; }
+    return { status: "cleared", cleared: prev, persisted: true };
+  }
+  const prev = (memoryLogFallback.entries || []).length;
+  memoryLogFallback.entries = [];
+  return { status: "cleared", cleared: prev, persisted: false };
+}
+
 // Plant-history feed: log entries mentioning a mix (by JMF id or designation, e.g. "0.38A").
 async function historyFeed(jmf, desig) {
   const all = await plantLog({ action: "read", limit: 50 });
@@ -1020,6 +1035,13 @@ async function historyFeed(jmf, desig) {
 export default async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
+    if (url.searchParams.get("admin") === "clearlog") {
+      const key = process.env.PLANTLOG_ADMIN_KEY;
+      const j = (o, s) => new Response(JSON.stringify(o), { status: s, headers: { "content-type": "application/json" } });
+      if (!key) return j({ error: "PLANTLOG_ADMIN_KEY not configured — endpoint disabled." }, 403);
+      if (url.searchParams.get("key") !== key) return j({ error: "invalid key" }, 403);
+      return j(await clearLog(), 200);
+    }
     if (url.searchParams.has("history"))
       return new Response(JSON.stringify(await historyFeed(url.searchParams.get("jmf"), url.searchParams.get("desig"))), {
         headers: { "content-type": "application/json" }, // no caching — log changes constantly
