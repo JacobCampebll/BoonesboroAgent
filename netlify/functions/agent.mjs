@@ -852,10 +852,56 @@ async function runLoop(send, clientMessages, provider) {
 }
 
 // =============================================================================
+// Mix-design list for the frontend dropdown (GET ?mixes=1)
+// =============================================================================
+
+const SIEVE_LABELS = [
+  ["50.0", '2"'], ["37.5", '1 1/2"'], ["25.0", '1"'], ["19.0", '3/4"'], ["12.5", '1/2"'],
+  ["9.5", '3/8"'], ["4.75", "#4"], ["2.36", "#8"], ["1.18", "#16"], ["0.6", "#30"],
+  ["0.3", "#50"], ["0.15", "#100"], ["0.075", "#200"],
+];
+
+function shortProducer(p) {
+  if (!p) return "";
+  const base = String(p).split("@")[0].trim().replace(/^The\s+/i, "");
+  return base.split(/\s+/)[0];
+}
+
+function mixSummaries() {
+  const recs = jmfData.records || jmfData;
+  return recs
+    .filter((r) => r.status !== "superseded")
+    .map((r) => ({
+      id: r.jmf_id,
+      name: String(r.source_file || r.mix_description || r.jmf_id).replace(/\.xlsm?$/i, ""),
+      desc: r.mix_description || "",
+      bins: (r.aggregates || []).map((a) => ({ pct: a.percent, type: a.agg_type, loc: shortProducer(a.producer) })),
+      grad: Object.fromEntries(
+        SIEVE_LABELS
+          .filter(([mm]) => r.jmf_gradation_mm && r.jmf_gradation_mm[mm] != null)
+          .map(([mm, label]) => [label, r.jmf_gradation_mm[mm]])
+      ),
+      ac: r.recycle && r.recycle.total_ac_in_mix_pct != null ? r.recycle.total_ac_in_mix_pct : (r.design_volumetrics || {}).optimum_ac_pct,
+      gmm: (r.design_volumetrics || {}).gmm,
+      va: (r.design_volumetrics || {}).air_voids_pct,
+      rap: r.recycle ? r.recycle.rap_total_pct : 0,
+      released: r.dates ? r.dates.released || null : null,
+    }));
+}
+
+// =============================================================================
 // Netlify handler (Functions 2.0, streamed response)
 // =============================================================================
 
 export default async (req) => {
+  if (req.method === "GET") {
+    const url = new URL(req.url);
+    if (url.searchParams.has("mixes"))
+      return new Response(JSON.stringify({ mixes: mixSummaries() }), {
+        headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },
+      });
+    return new Response(JSON.stringify({ error: "POST only (or GET ?mixes=1)" }), { status: 405, headers: { "content-type": "application/json" } });
+  }
   if (req.method !== "POST")
     return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: { "content-type": "application/json" } });
 

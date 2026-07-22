@@ -133,7 +133,10 @@
 
   <div id="mixform" class="preset-form" hidden>
     <div class="grid">
-      <div><label>Mix / JMF #</label><input id="mf-mix" placeholder="00260116 or CL4 0.38A"></div>
+      <div><label>Mix design</label>
+        <select id="mf-mix"><option value="">Loading mixes…</option></select>
+        <input id="mf-mix-other" placeholder="Type the mix name" style="display:none;margin-top:6px">
+      </div>
       <div><label>Contract #</label><input id="mf-cid" placeholder="251026"></div>
       <div><label>Tons into production</label><input id="mf-tons" placeholder="100"></div>
       <div><label>Sample basis</label><select id="mf-basis"><option value="">—</option><option>Single sample</option><option>Trend (multiple samples)</option></select></div>
@@ -429,8 +432,53 @@
       var wasHidden = f.hidden;
       hideForms();
       f.hidden = !wasHidden;
+      if (!f.hidden && chip.getAttribute("data-form") === "mixform") loadMixes();
       if (!f.hidden) { var first = f.querySelector("input,textarea"); if (first) first.focus(); }
     });
+  });
+
+  // ---------- mix-design dropdown: load list, auto-fill from the mix pack ----------
+  var MIXES = null, mixesRequested = false;
+  function loadMixes() {
+    if (mixesRequested) return;
+    mixesRequested = true;
+    fetch(ENDPOINT + "?mixes=1")
+      .then(function (r) { return r.json(); })
+      .then(function (d) { populateMixes(d.mixes || []); })
+      .catch(function () {
+        $("mf-mix").innerHTML = '<option value="">(mix list unavailable)</option><option value="other">Type it manually</option>';
+      });
+  }
+  function populateMixes(list) {
+    MIXES = list;
+    $("mf-mix").innerHTML =
+      '<option value="">— pick a mix design —</option>' +
+      list.map(function (m, i) { return '<option value="' + i + '">' + esc(m.name) + "</option>"; }).join("") +
+      '<option value="other">Other / not listed</option>';
+  }
+  function selectedMix() {
+    var v = $("mf-mix").value;
+    return (MIXES && v !== "" && v !== "other") ? MIXES[+v] : null;
+  }
+  $("mf-mix").addEventListener("change", function () {
+    var other = $("mf-mix").value === "other";
+    $("mf-mix-other").style.display = other ? "block" : "none";
+    var m = selectedMix();
+    if (!m) return;
+    // bins from the mix pack (tech edits to actual plant settings)
+    var rows = document.querySelectorAll("#mixform .binrow");
+    rows.forEach(function (row, i) {
+      var b = m.bins[i];
+      row.querySelector(".bin-pct").value  = b ? String(b.pct) : "";
+      row.querySelector(".bin-type").value = b ? b.type : "";
+      row.querySelector(".bin-loc").value  = b ? b.loc : "";
+    });
+    // gradation prefilled with JMF targets (tech overwrites with the burn-off)
+    document.querySelectorAll("#mixform .sv").forEach(function (s) {
+      var t = m.grad[s.getAttribute("data-sieve")];
+      s.value = t == null ? "" : String(t);
+    });
+    if (m.ac != null) $("mf-ac").value = String(m.ac);
   });
   document.querySelectorAll("[data-close]").forEach(function (btn) {
     btn.addEventListener("click", function(){ $(btn.getAttribute("data-close")).hidden = true; });
@@ -445,10 +493,20 @@
     var v = function(id){ return $(id).value.trim(); };
     var lines = ["Mix change help needed."];
     var head = [];
-    if (v("mf-mix")) head.push("Mix/JMF: " + v("mf-mix"));
+    var mix = selectedMix();
+    if (mix) head.push("Mix design: " + mix.name + " (JMF " + mix.id + ")");
+    else if ($("mf-mix").value === "other" && v("mf-mix-other")) head.push("Mix design: " + v("mf-mix-other"));
     if (v("mf-cid")) head.push("Contract: " + v("mf-cid"));
     if (v("mf-tons")) head.push("Tons into production: " + v("mf-tons"));
     if (head.length) lines.push(head.join(" | "));
+    if (mix) {
+      var tgt = [];
+      if (mix.gmm != null) tgt.push("Gmm " + mix.gmm);
+      if (mix.ac != null) tgt.push("AC " + mix.ac + "%");
+      if (mix.va != null) tgt.push("Va " + mix.va + "%");
+      if (mix.rap != null) tgt.push("RAP " + mix.rap + "%");
+      if (tgt.length) lines.push("Design targets (mix pack " + mix.id + "): " + tgt.join(", "));
+    }
     if (v("mf-basis")) lines.push("Sample basis: " + v("mf-basis"));
     var res = [];
     if (v("mf-va")) res.push("Va " + v("mf-va") + "%");
