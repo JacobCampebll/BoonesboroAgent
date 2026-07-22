@@ -707,8 +707,7 @@
         CONTRACTS = d.contracts || [];
         $("ct-job").innerHTML = '<option value="">— pick a contract —</option>' +
           CONTRACTS.map(function (c) {
-            var label = "Call " + (c.call_no || "?") + " · " + c.id + " · " + (c.county || "") +
-              (c.description ? " — " + c.description : "");
+            var label = c.id + " · " + (c.county || "") + (c.description ? " — " + c.description : "");
             return '<option value="' + c.id + '">' + esc(label) + "</option>";
           }).join("");
       })

@@ -931,7 +931,7 @@ function contractList() {
       route: j.route || "",
       letting_date: j.letting_date || "",
     }))
-    .sort((a, b) => String(a.call_no).localeCompare(String(b.call_no), undefined, { numeric: true }));
+    .sort((a, b) => String(a.id).localeCompare(String(b.id), undefined, { numeric: true }));
 }
 
 // Pull clean "SPECIAL NOTE FOR X" titles from a contract's passages.
