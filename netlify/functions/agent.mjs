@@ -867,6 +867,19 @@ function shortProducer(p) {
   return base.split(/\s+/)[0];
 }
 
+// Sort key so mixes group by designation (0.38A, 0.38B, 0.38D, 0.75D, 1.00D,
+// No.4A/B/D...) then alphabetically by variant. New packs slot in automatically.
+function mixSortKey(name) {
+  const parts = String(name).split(/\s+/);
+  const desig = parts[1] || "";
+  const variant = parts.slice(3).join(" ").toLowerCase();
+  let size = 999, cls = "";
+  let m;
+  if ((m = desig.match(/^(\d+(?:\.\d+)?)([A-Z]?)$/))) { size = parseFloat(m[1]); cls = m[2] || ""; }
+  else if ((m = desig.match(/^No\.(\d+)([A-Z]?)$/i))) { size = 100 + parseFloat(m[1]); cls = m[2] || ""; }
+  return [size, cls, variant];
+}
+
 function mixSummaries() {
   const recs = jmfData.records || jmfData;
   return recs
@@ -886,7 +899,11 @@ function mixSummaries() {
       va: (r.design_volumetrics || {}).air_voids_pct,
       rap: r.recycle ? r.recycle.rap_total_pct : 0,
       released: r.dates ? r.dates.released || null : null,
-    }));
+    }))
+    .sort((a, b) => {
+      const ka = mixSortKey(a.name), kb = mixSortKey(b.name);
+      return ka[0] - kb[0] || ka[1].localeCompare(kb[1]) || ka[2].localeCompare(kb[2]);
+    });
 }
 
 // =============================================================================
