@@ -917,6 +917,83 @@ function mixSummaries() {
 }
 
 // =============================================================================
+// Contract browser (GET ?contracts=1 for the list, ?contract=<id> for detail)
+// =============================================================================
+
+function contractList() {
+  return proposals.jobs
+    .map((j) => ({
+      id: j.contract_id,
+      call_no: j.call_no || "",
+      county: j.county || "",
+      description: j.description || "",
+      work_type: j.work_type || "",
+      route: j.route || "",
+      letting_date: j.letting_date || "",
+    }))
+    .sort((a, b) => String(a.call_no).localeCompare(String(b.call_no), undefined, { numeric: true }));
+}
+
+// Pull clean "SPECIAL NOTE FOR X" titles from a contract's passages.
+function specialNotes(cid) {
+  const seen = new Set();
+  const out = [];
+  for (const p of proposals.passages) {
+    if (!(p.contract_ids || []).includes(cid)) continue;
+    const re = /SPECIAL NOTE[S]? FOR ([A-Z0-9][A-Z0-9 ()\/&.'-]{2,50}?)(?=\s+[A-Z][a-z]|\s{2,}|$)/g;
+    let m;
+    while ((m = re.exec(p.text))) {
+      const title = m[1].replace(/[\s(]+$/, "").trim();
+      const key = title.toUpperCase();
+      if (title.length > 3 && !seen.has(key)) { seen.add(key); out.push(title); }
+    }
+  }
+  return out.slice(0, 20);
+}
+
+function contractDetail(cid) {
+  const job = proposals.jobs.find((j) => j.contract_id === cid);
+  if (!job) return null;
+  const text = proposals.passages
+    .filter((p) => (p.contract_ids || []).includes(cid))
+    .map((p) => p.text)
+    .join("\n");
+  let option = null;
+  if (/COMPACTION OPTION B/i.test(text)) option = "B";
+  else if (/COMPACTION OPTION A/i.test(text)) option = "A";
+  // bid items grouped by section, in document order
+  const items = proposals.bid_items.filter((b) => b.contract_id === cid);
+  const sections = [];
+  const byName = {};
+  for (const b of items) {
+    const name = b.section || "—";
+    if (!byName[name]) { byName[name] = { section: name, items: [] }; sections.push(byName[name]); }
+    byName[name].items.push({
+      line: b.line, bid_code: b.bid_code, description: b.description,
+      quantity: b.quantity, unit: b.unit, revision_note: b.revision_note || null,
+    });
+  }
+  return {
+    id: job.contract_id,
+    call_no: job.call_no || "",
+    county: job.county || "",
+    fed_state_proj: job.fed_state_proj || "",
+    description: job.description || "",
+    work_type: job.work_type || "",
+    route: job.route || "",
+    mileage: job.mileage != null ? job.mileage : null,
+    pcn: job.pcn || "",
+    letting_date: job.letting_date || "",
+    completion_date: job.completion_date || "",
+    bid_items_from: job.bid_items_from || "",
+    compaction_option: option,
+    special_notes: specialNotes(cid),
+    sections,
+    bid_item_count: items.length,
+  };
+}
+
+// =============================================================================
 // Netlify handler (Functions 2.0, streamed response)
 // =============================================================================
 
@@ -927,7 +1004,18 @@ export default async (req) => {
       return new Response(JSON.stringify({ mixes: mixSummaries() }), {
         headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },
       });
-    return new Response(JSON.stringify({ error: "POST only (or GET ?mixes=1)" }), { status: 405, headers: { "content-type": "application/json" } });
+    if (url.searchParams.has("contracts"))
+      return new Response(JSON.stringify({ contracts: contractList() }), {
+        headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },
+      });
+    if (url.searchParams.has("contract")) {
+      const d = contractDetail(url.searchParams.get("contract"));
+      return new Response(JSON.stringify(d ? { contract: d } : { error: "unknown contract" }), {
+        status: d ? 200 : 404,
+        headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },
+      });
+    }
+    return new Response(JSON.stringify({ error: "POST only (or GET ?mixes=1 / ?contracts=1 / ?contract=<id>)" }), { status: 405, headers: { "content-type": "application/json" } });
   }
   if (req.method !== "POST")
     return new Response(JSON.stringify({ error: "POST only" }), { status: 405, headers: { "content-type": "application/json" } });

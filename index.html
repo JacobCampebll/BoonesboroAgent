@@ -107,6 +107,22 @@
   .preset-form .row{display:flex;gap:8px;justify-content:flex-end}
   .preset-form .row button{padding:8px 16px;font-size:13px}
   .preset-form .row .ghost{background:none;color:var(--muted);border:1px solid #dcdcdc}
+  /* contract browser card */
+  .ctcard{margin:4px 0 6px}
+  .ctcard .cthead{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+  .ctcard .ctrow{font-size:13px}
+  .ctcard .ctrow span.k{display:inline-block;min-width:96px;color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+  .ctcard .opt{display:inline-block;background:#eef6ee;border:1px solid #cfe4cf;color:#2f6f36;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:700}
+  .ctcard .ctnotes{margin:6px 0 4px}
+  .ctcard .ctnotes .chip{display:inline-block;background:var(--panel);border:1px solid #e0e0e0;border-radius:999px;padding:2px 9px;margin:0 4px 4px 0;font-size:11.5px;color:var(--text)}
+  .ctcard .ctsec{font-size:11px;color:var(--muted);font-weight:700;margin:8px 0 3px;text-transform:uppercase}
+  .ctcard .bidwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ctcard table{border-collapse:collapse;width:100%;font-size:12.5px}
+  .ctcard th,.ctcard td{text-align:left;padding:3px 8px;border-bottom:1px solid #efefef;white-space:nowrap}
+  .ctcard th{color:var(--muted);font-size:10.5px;text-transform:uppercase;font-weight:600}
+  .ctcard td.num,.ctcard th.num{text-align:right}
+  .ctcard td.desc{white-space:normal;min-width:180px}
+  .ctempty{color:var(--muted);font-size:13px;padding:10px 2px}
 </style>
 </head>
 <body>
@@ -130,7 +146,7 @@
     <button type="button" class="pchip" data-form="mixform">🔧 Mix change</button>
     <button type="button" class="pchip" data-form="scform">✅ Spec check</button>
     <button type="button" class="pchip" data-form="pfform">💵 Pay factor</button>
-    <button type="button" class="pchip" data-form="spform">📋 Provisions</button>
+    <button type="button" class="pchip" data-form="ctform">📄 Contracts</button>
     <button type="button" class="pchip" data-form="logform">📓 Log it</button>
   </div>
 
@@ -242,25 +258,16 @@
     </div>
   </div>
 
-  <div id="spform" class="preset-form" hidden>
-    <div class="grid">
-      <div><label>Contract #</label><input id="sp-cid"></div>
-      <div><label>Topic</label><select id="sp-topic">
-        <option value="">Any / general</option>
-        <option>Surface mixtures</option>
-        <option>Air voids target</option>
-        <option>RAP &amp; recycled materials</option>
-        <option>Antistrip additive</option>
-        <option>Longitudinal joint density</option>
-        <option>In-place / mat density</option>
-        <option>Materials &amp; sources</option>
-        <option>Warranty</option>
-      </select></div>
-      <div><label>Mix type / item (optional)</label><input id="sp-mixtype"></div>
+  <div id="ctform" class="preset-form" hidden>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div><label>Contract / job</label>
+        <select id="ct-job"><option value="">Loading contracts…</option></select>
+      </div>
     </div>
+    <div id="ct-detail"><div class="ctempty">Pick a job to see its details, bid items, and special notes.</div></div>
     <div class="row">
-      <button type="button" class="ghost" data-close="spform">Cancel</button>
-      <button type="button" id="sp-go">Add to message</button>
+      <button type="button" class="ghost" data-close="ctform">Cancel</button>
+      <button type="button" id="ct-ask" disabled>Ask the agent about this contract</button>
     </div>
   </div>
 
@@ -524,6 +531,7 @@
       f.hidden = !wasHidden;
       var df = chip.getAttribute("data-form");
       if (!f.hidden && (df === "mixform" || df === "scform" || df === "pfform")) loadMixes();
+      if (!f.hidden && df === "ctform") loadContracts();
       if (!f.hidden) { var first = f.querySelector("input,textarea"); if (first) first.focus(); }
     });
   });
@@ -688,18 +696,80 @@
     composeToInput(lines.join("\n"));
   });
 
-  // ---------- Special provisions lookup ----------
-  $("sp-go").addEventListener("click", function () {
-    var v = function(id){ return $(id).value.trim(); };
-    if (!v("sp-cid")) { $("sp-cid").focus(); return; }
-    var lines = ["Special-provisions lookup."];
-    var head = ["Contract: " + v("sp-cid")];
-    if (v("sp-topic")) head.push("Topic: " + v("sp-topic"));
-    if (v("sp-mixtype")) head.push("Mix type/item: " + v("sp-mixtype"));
-    lines.push(head.join(" | "));
-    lines.push("What special provisions in this contract's proposal override or add to the KYTC Standard Specs" +
-      (v("sp-topic") ? " for " + v("sp-topic").toLowerCase() : "") +
-      "? Quote the special-provision language and cite where it comes from. If there are none, say so and give the Standard Spec default.");
+  // ---------- Contract browser: list + inline detail card + ask button ----------
+  var CONTRACTS = null, contractsRequested = false, currentContract = null;
+  function loadContracts() {
+    if (contractsRequested) return;
+    contractsRequested = true;
+    fetch(ENDPOINT + "?contracts=1")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        CONTRACTS = d.contracts || [];
+        $("ct-job").innerHTML = '<option value="">— pick a contract —</option>' +
+          CONTRACTS.map(function (c) {
+            var label = "Call " + (c.call_no || "?") + " · " + c.id + " · " + (c.county || "") +
+              (c.description ? " — " + c.description : "");
+            return '<option value="' + c.id + '">' + esc(label) + "</option>";
+          }).join("");
+      })
+      .catch(function () { $("ct-job").innerHTML = '<option value="">(contract list unavailable)</option>'; });
+  }
+  function fmtQty(q) { return (q == null || q === "") ? "" : Number(q).toLocaleString(); }
+  function renderContract(c) {
+    function row(k, val) { return val ? '<div class="ctrow"><span class="k">' + k + '</span>' + esc(val) + "</div>" : ""; }
+    var h = '<div class="ctcard"><div class="cthead">';
+    h += '<div class="ctrow"><span class="k">Contract</span><b>' + esc(c.id) + "</b>" +
+         (c.call_no ? " · Call " + esc(c.call_no) : "") + (c.county ? " · " + esc(c.county) : "") + "</div>";
+    h += row("Description", c.description + (c.route ? " — " + c.route : "") + (c.mileage ? " · " + c.mileage + " mi" : ""));
+    h += row("Work type", c.work_type);
+    h += row("Fed/State", c.fed_state_proj + (c.pcn ? " · PCN " + c.pcn : ""));
+    var dates = [];
+    if (c.letting_date) dates.push("Let " + c.letting_date);
+    if (c.completion_date) dates.push("Complete by " + c.completion_date);
+    h += row("Dates", dates.join(" · "));
+    if (c.compaction_option)
+      h += '<div class="ctrow"><span class="k">Compaction</span><span class="opt">OPTION ' + esc(c.compaction_option) +
+           '</span> <span style="color:var(--muted);font-size:12px">(Sections 402 &amp; 403)</span></div>';
+    h += "</div>"; // cthead
+    if (c.special_notes && c.special_notes.length) {
+      h += '<div class="ctnotes"><span class="k">Special notes</span><br>' +
+        c.special_notes.map(function (n) { return '<span class="chip">' + esc(n) + "</span>"; }).join("") + "</div>";
+    }
+    (c.sections || []).forEach(function (s) {
+      h += '<div class="ctsec">' + esc(s.section) + '</div><div class="bidwrap"><table><thead><tr>';
+      h += '<th>Line</th><th>Code</th><th class="desc">Description</th><th class="num">Qty</th><th>Unit</th></tr></thead><tbody>';
+      s.items.forEach(function (it) {
+        h += "<tr><td>" + esc(it.line || "") + "</td><td>" + esc(it.bid_code || "") + '</td><td class="desc">' +
+          esc(it.description || "") + '</td><td class="num">' + esc(fmtQty(it.quantity)) + "</td><td>" + esc(it.unit || "") + "</td></tr>";
+      });
+      h += "</tbody></table></div>";
+    });
+    h += "</div>"; // ctcard
+    return h;
+  }
+  $("ct-job").addEventListener("change", function () {
+    var id = $("ct-job").value;
+    currentContract = null;
+    $("ct-ask").disabled = true;
+    if (!id) { $("ct-detail").innerHTML = '<div class="ctempty">Pick a job to see its details, bid items, and special notes.</div>'; return; }
+    $("ct-detail").innerHTML = '<div class="ctempty">Loading…</div>';
+    fetch(ENDPOINT + "?contract=" + encodeURIComponent(id))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.contract) { $("ct-detail").innerHTML = '<div class="ctempty">Couldn\'t load that contract.</div>'; return; }
+        currentContract = d.contract;
+        $("ct-detail").innerHTML = renderContract(d.contract);
+        $("ct-ask").disabled = false;
+      })
+      .catch(function () { $("ct-detail").innerHTML = '<div class="ctempty">Couldn\'t load that contract.</div>'; });
+  });
+  $("ct-ask").addEventListener("click", function () {
+    var c = currentContract;
+    if (!c) return;
+    var lines = ["Contract briefing."];
+    lines.push("Contract " + c.id + (c.description ? " — " + c.description : "") + (c.county ? " (" + c.county + " County)" : "") +
+      (c.compaction_option ? " · Compaction Option " + c.compaction_option : ""));
+    lines.push("What special provisions apply to this job, which compaction option governs acceptance and pay, and what should a QC tech watch for before running mix on it? Cite the special-provision language.");
     composeToInput(lines.join("\n"));
   });
 
