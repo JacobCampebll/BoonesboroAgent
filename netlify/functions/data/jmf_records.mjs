@@ -438,7 +438,6 @@ export default {
     "eff_ac_pct": 5.4,
     "abs_ac_pct": 0.6,
     "gmm": 2.471,
-    "design_gmb": 2.384,
     "gsb_blend": 2.667,
     "gse": 2.713,
     "unit_weight_pcf": 148.6,
