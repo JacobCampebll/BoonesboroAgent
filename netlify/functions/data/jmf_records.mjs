@@ -325,7 +325,7 @@ export default {
   {
    "jmf_id": "00260175",
    "verified": false,
-   "source_file": "CL3 0.38A 64-22 Haydon.xlsm",
+   "source_file": "CL3 0.38A 64-22 Coarse Haydon.xlsm",
    "plant_folder": "BT3",
    "plant_name": "The Allen Company @ Boonesborough",
    "form_version": "Ver 11.3",
