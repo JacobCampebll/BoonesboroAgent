@@ -161,11 +161,13 @@ export default {
    ],
    "status": "active",
    "flags": [
-    "3 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175']); all left active - mark superseded manually if any were replaced (newest released: 00260175)"
+    "4 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175', '00260403']); all left active - mark superseded manually if any were replaced (newest released: 00260403)"
    ],
    "concurrent_designs": [
     "00260002",
     "00260175"
+  ,
+    "00260403"
    ]
   },
   {
@@ -315,11 +317,13 @@ export default {
    ],
    "status": "active",
    "flags": [
-    "3 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175']); all left active - mark superseded manually if any were replaced (newest released: 00260175)"
+    "4 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175', '00260403']); all left active - mark superseded manually if any were replaced (newest released: 00260403)"
    ],
    "concurrent_designs": [
     "00260116",
     "00260175"
+  ,
+    "00260403"
    ]
   },
   {
@@ -461,11 +465,13 @@ export default {
    ],
    "status": "active",
    "flags": [
-    "3 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175']); all left active - mark superseded manually if any were replaced (newest released: 00260175)"
+    "4 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175', '00260403']); all left active - mark superseded manually if any were replaced (newest released: 00260403)"
    ],
    "concurrent_designs": [
     "00260002",
     "00260116"
+  ,
+    "00260403"
    ]
   },
   {
@@ -1699,6 +1705,312 @@ export default {
    "flags": [
     "no bid-item match in document-printed contract 221349 (design instead pairs to contracts ['252394', '262081'] per Jake)"
    ]
+  },
+  {
+   "jmf_id": "00260403",
+   "verified": false,
+   "source_file": "CL3 0.38A 64-22 Fine Haydon.xlsm",
+   "plant_folder": "BT3",
+   "plant_name": "The Allen Company @ Boonesborough",
+   "form_version": "Ver 11.3",
+   "cid_document": "252112",
+   "cid_folder_path": null,
+   "cid_source": "document_only",
+   "sm_id_num": "07640AMD260403",
+   "mix_id_num": "00260403",
+   "mix_type_string": "00385 CL3 ASPH SURF 0.38A PG64-22",
+   "bid_code": "00385",
+   "mix_description": "CL3 ASPH SURF 0.38A PG64-22",
+   "submittal_type": "Ref. Mix Design (with changes)-different proj.",
+   "test_method": "AASHTO M323 & R35",
+   "esal_class": 3,
+   "gyrations": {
+    "nini": 7,
+    "ndes": 65,
+    "nmax": 105
+   },
+   "binder": {
+    "grade": "PG64-22",
+    "source": "ATS Asphalt Terminal @ Lexington",
+    "producer_no": "LAP100201",
+    "material_code": 60075
+   },
+   "mix_comp_temp_f": "300/265 (deg. F)",
+   "county": "Madison",
+   "fed_state_project": "FD05 076 0025 016-021",
+   "project_item_ref": "MP07600252501 (0160)",
+   "contractor_producer_no": "AMP070302",
+   "dates": {
+    "letting": "2025-07-24",
+    "received": "2026-07-17",
+    "released": "2026-07-17"
+   },
+   "approval_date": "2026-07-17",
+   "submitted_by": "cowsley",
+   "approved_by": "tsallee",
+   "total_tons": 15200,
+   "aggregates": [
+    {
+     "producer_no": "AGP027501",
+     "producer": "Haydon Materials, LLC-Airport Road @ Bardstown",
+     "material_code": 10400,
+     "agg_type": "Dolomite #8's Class A",
+     "gsb": 2.64,
+     "percent": 35
+    },
+    {
+     "producer_no": "AGP027501",
+     "producer": "Haydon Materials, LLC-Airport Road @ Bardstown",
+     "material_code": 10290,
+     "agg_type": "Dol. #10's Washed",
+     "gsb": 2.69,
+     "percent": 20
+    },
+    {
+     "producer_no": "AGP007401",
+     "producer": "Boonesboro Quarry @ Boonesboro",
+     "material_code": 10290,
+     "agg_type": "LS #10's (Washed)",
+     "gsb": 2.66,
+     "percent": 12
+    },
+    {
+     "producer_no": "AGP007401",
+     "producer": "Boonesboro Quarry @ Boonesboro",
+     "material_code": 10293,
+     "agg_type": "LS #10's (Unwashed)",
+     "gsb": 2.66,
+     "percent": 5
+    },
+    {
+     "producer_no": "AGP012102",
+     "producer": "Watson Gravel @ Ross, Ohio",
+     "material_code": 10436,
+     "agg_type": "Natural Sand",
+     "gsb": 2.62,
+     "percent": 15
+    },
+    {
+     "producer_no": "AMP070302",
+     "producer": "The Allen Company @ Boonesborough",
+     "material_code": 24033,
+     "agg_type": "Fine RAP",
+     "gsb": 2.664,
+     "percent": 13
+    }
+   ],
+   "recycle": {
+    "rap_total_pct": 13,
+    "ac_in_recycle_pct": 3.7,
+    "virgin_ac_in_mix_pct": 5.7,
+    "recycle_ac_in_mix_pct": 0.5,
+    "total_ac_in_mix_pct": 6.2
+   },
+   "jmf_gradation_mm": {
+    "50.0": 100,
+    "37.5": 100,
+    "25.0": 100,
+    "19.0": 100,
+    "12.5": 100,
+    "9.5": 94.8,
+    "4.75": 65.6,
+    "2.36": 43.2,
+    "1.18": 29.6,
+    "0.6": 20.3,
+    "0.3": 11.1,
+    "0.15": 7.3,
+    "0.075": 5.9
+   },
+   "design_volumetrics": {
+    "optimum_ac_pct": 6.2,
+    "air_voids_pct": 3.5,
+    "vma_pct": 15.6,
+    "vfa_pct": 78,
+    "da_ratio": 1.1,
+    "eff_ac_pct": 5.3,
+    "abs_ac_pct": 0.9,
+    "gmm": 2.472,
+    "gsb_blend": 2.653,
+    "gse": 2.723,
+    "unit_weight_pcf": 148.8,
+    "film_thickness_um": 9.6,
+    "pct_gmm_at_nini": 87.3,
+    "pct_gmm_at_nmax": 98.2,
+    "fine_agg_angularity_pct": 45,
+    "sand_equivalent_pct": 68,
+    "flat_elongated_pct": 4,
+    "coarse_agg_angularity": "100/100",
+    "tsr_pct": 80.0,
+    "antistrip_additive": "None Required"
+   },
+   "project_items": [
+    {
+     "project_number": "MP07600252501",
+     "line_item": "0160",
+     "represented_quantity": 15200,
+     "unit": "TON"
+    }
+   ],
+   "status": "active",
+   "flags": [
+    "4 designs share CID 252112 + bid code 00385 (['00260002', '00260116', '00260175', '00260403']); all left active - mark superseded manually if any were replaced (newest released: 00260403)"
+   ],
+   "concurrent_designs": [
+    "00260002",
+    "00260116",
+    "00260175"
+   ]
+  },
+  {
+   "jmf_id": "00260254",
+   "verified": false,
+   "source_file": "CL3 0.38B 64-22 with 11's.xlsm",
+   "plant_folder": "BT3",
+   "plant_name": "The Allen Company @ Boonesborough",
+   "form_version": "Ver 12.1",
+   "cid_document": "262120",
+   "cid_folder_path": null,
+   "cid_source": "document_only",
+   "sm_id_num": "07640AMD260254",
+   "mix_id_num": "00260254",
+   "mix_type_string": "00388 CL3 ASPH SURF 0.38B PG64-22",
+   "bid_code": "00388",
+   "mix_description": "CL3 ASPH SURF 0.38B PG64-22",
+   "submittal_type": "Ref. Mix Design (project change only)",
+   "test_method": "AASHTO M323 & R35",
+   "esal_class": 3,
+   "gyrations": {
+    "nini": 7,
+    "ndes": 65,
+    "nmax": 105
+   },
+   "binder": {
+    "grade": "PG64-22",
+    "source": "ATS Asphalt Terminal @ Lexington",
+    "producer_no": "LAP100201",
+    "material_code": 60075
+   },
+   "mix_comp_temp_f": "300/265 (deg. F)",
+   "county": "Madison",
+   "fed_state_project": "076GR26P009 - FD05",
+   "project_item_ref": "MP07606272601 (0165)",
+   "contractor_producer_no": "AMP070302",
+   "dates": {
+    "letting": "2026-02-19",
+    "received": "2026-04-28",
+    "released": "2026-04-29"
+   },
+   "approval_date": "2026-04-29",
+   "submitted_by": "jcampbe2",
+   "approved_by": "tsallee",
+   "total_tons": 7525,
+   "aggregates": [
+    {
+     "producer_no": "AGP027501",
+     "producer": "Haydon Materials - Airport RD",
+     "material_code": 10395,
+     "agg_type": "Dolomite #8's",
+     "gsb": 2.63,
+     "percent": 22
+    },
+    {
+     "producer_no": "AGP027501",
+     "producer": "Haydon Materials - Airport RD",
+     "material_code": 10290,
+     "agg_type": "Dol. #10's Washed",
+     "gsb": 2.69,
+     "percent": 21
+    },
+    {
+     "producer_no": "AGP007401",
+     "producer": "The Allen Company @ Boonesboro",
+     "material_code": 10395,
+     "agg_type": "Limestone #8's",
+     "gsb": 2.69,
+     "percent": 13
+    },
+    {
+     "producer_no": "AGP007401",
+     "producer": "The Allen Company @ Boonesboro",
+     "material_code": 10297,
+     "agg_type": "LS #11's (Unwashed)",
+     "gsb": 2.68,
+     "percent": 18
+    },
+    {
+     "producer_no": "AGP012102",
+     "producer": "Watson Gravel @ Ross, Ohio",
+     "material_code": 10436,
+     "agg_type": "Natural Sand",
+     "gsb": 2.57,
+     "percent": 11
+    },
+    {
+     "producer_no": "AMP070302",
+     "producer": "The Allen Company @ Boonesboro",
+     "material_code": 24033,
+     "agg_type": "Fine RAP",
+     "gsb": 2.658,
+     "percent": 15
+    }
+   ],
+   "recycle": {
+    "rap_total_pct": 15,
+    "ac_in_recycle_pct": null,
+    "virgin_ac_in_mix_pct": null,
+    "recycle_ac_in_mix_pct": null,
+    "total_ac_in_mix_pct": 6.1
+   },
+   "jmf_gradation_mm": {
+    "50.0": 100,
+    "37.5": 100,
+    "25.0": 100,
+    "19.0": 100,
+    "12.5": 100,
+    "9.5": 91,
+    "4.75": 58,
+    "2.36": 36,
+    "1.18": 25,
+    "0.6": 17,
+    "0.3": 10,
+    "0.15": 8,
+    "0.075": 7.4
+   },
+   "design_volumetrics": {
+    "optimum_ac_pct": 6.1,
+    "air_voids_pct": 3.5,
+    "vma_pct": 15.8,
+    "vfa_pct": 78.2,
+    "da_ratio": 1.4,
+    "eff_ac_pct": 5.4,
+    "abs_ac_pct": 0.7,
+    "gmm": 2.466,
+    "gsb_blend": 2.656,
+    "gse": 2.712,
+    "unit_weight_pcf": 148.6,
+    "film_thickness_um": 9.3,
+    "pct_gmm_at_nini": 86.9,
+    "pct_gmm_at_nmax": 97.9,
+    "fine_agg_angularity_pct": 45,
+    "sand_equivalent_pct": 64,
+    "flat_elongated_pct": 4,
+    "coarse_agg_angularity": "100",
+    "tsr_pct": 83.5,
+    "antistrip_additive": "None Required"
+   },
+   "project_items": [
+    {
+     "project_number": "MP07606272601",
+     "line_item": "0165",
+     "represented_quantity": 7525,
+     "unit": "TON"
+    }
+   ],
+   "status": "active",
+   "flags": [
+    "recycle AC split (virgin/recycle) not populated on the KYTC v12.1 form; RAP total 15% and total AC 6.1% are read straight from the pack, per-fraction AC left null"
+   ],
+   "concurrent_designs": []
   }
  ]
 };
