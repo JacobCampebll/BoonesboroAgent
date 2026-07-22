@@ -993,6 +993,26 @@ function contractDetail(cid) {
   };
 }
 
+// Plant-history feed: log entries mentioning a mix (by JMF id or designation, e.g. "0.38A").
+async function historyFeed(jmf, desig) {
+  const all = await plantLog({ action: "read", limit: 50 });
+  const j = String(jmf || "").toLowerCase();
+  const d = String(desig || "").toLowerCase();
+  let entries = all.entries || [];
+  if (j || d) {
+    entries = entries.filter((e) => {
+      const hay = (e.text + " " + (e.tags || []).join(" ")).toLowerCase();
+      return (j && hay.includes(j)) || (d && hay.includes(d));
+    });
+  }
+  return {
+    entries,
+    matched: entries.length,
+    total_entries: all.total_entries || 0,
+    persistent_store: !!all.persistent_store,
+  };
+}
+
 // =============================================================================
 // Netlify handler (Functions 2.0, streamed response)
 // =============================================================================
@@ -1000,6 +1020,10 @@ function contractDetail(cid) {
 export default async (req) => {
   if (req.method === "GET") {
     const url = new URL(req.url);
+    if (url.searchParams.has("history"))
+      return new Response(JSON.stringify(await historyFeed(url.searchParams.get("jmf"), url.searchParams.get("desig"))), {
+        headers: { "content-type": "application/json" }, // no caching — log changes constantly
+      });
     if (url.searchParams.has("mixes"))
       return new Response(JSON.stringify({ mixes: mixSummaries() }), {
         headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },

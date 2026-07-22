@@ -144,7 +144,7 @@
 <footer>
   <div class="presets">
     <button type="button" class="pchip" data-form="mixform">Mix change</button>
-    <button type="button" class="pchip" data-form="scform">Spec check</button>
+    <button type="button" class="pchip" data-form="phform">Plant history</button>
     <button type="button" class="pchip" data-form="pfform">Pay factor</button>
     <button type="button" class="pchip" data-form="ctform">Contracts</button>
     <button type="button" class="pchip" data-form="logform">Log it</button>
@@ -215,46 +215,19 @@
     </div>
   </div>
 
-  <div id="scform" class="preset-form" hidden>
-    <div class="grid">
+  <div id="phform" class="preset-form" hidden>
+    <div class="grid" style="grid-template-columns:1fr">
       <div><label>Mix design</label>
-        <select id="sc-mix" class="mix-select"><option value="">Loading mixes…</option></select>
-        <input id="sc-mix-other" placeholder="Type the mix name" style="display:none;margin-top:6px">
+        <select id="ph-mix" class="mix-select"><option value="">Loading mixes…</option></select>
       </div>
-      <div><label>Contract #</label><input id="sc-cid"></div>
-      <div><label>Sublot / sample #</label><input id="sc-sublot"></div>
-      <div><label>Sample basis</label><select id="sc-basis"><option value="">—</option><option>Single sample</option><option>Trend (multiple samples)</option></select></div>
-      <div><label>Air voids (Va %)</label><input id="sc-va"></div>
-      <div><label>VMA %</label><input id="sc-vma"></div>
-      <div><label>Gmm (MSG)</label><input id="sc-gmm"></div>
-      <div><label>Gmb (BSG)</label><input id="sc-gmb"></div>
-      <div><label>AC % (burn-off)</label><input id="sc-ac"></div>
     </div>
-    <div class="split">
-      <div class="split-left">
-        <label class="sect">How the check works</label>
-        <p style="font-size:12px;color:var(--muted);margin:2px 0 0">Pick the mix so the agent knows which JMF's tolerances to use, then enter today's <em>actual</em> results and burn-off. Blank sieves are skipped. You get pass/fail per property with the margin, plus a check against this contract's special provisions.</p>
-      </div>
-      <div class="split-right">
-        <label class="sect">Measured gradation (% passing)</label>
-        <div class="svrow"><label>2"</label><input class="sv" data-sieve='2"'></div>
-        <div class="svrow"><label>1 1/2"</label><input class="sv" data-sieve='1 1/2"'></div>
-        <div class="svrow"><label>1"</label><input class="sv" data-sieve='1"'></div>
-        <div class="svrow"><label>3/4"</label><input class="sv" data-sieve='3/4"'></div>
-        <div class="svrow"><label>1/2"</label><input class="sv" data-sieve='1/2"'></div>
-        <div class="svrow"><label>3/8"</label><input class="sv" data-sieve='3/8"'></div>
-        <div class="svrow"><label>#4</label><input class="sv" data-sieve="#4"></div>
-        <div class="svrow"><label>#8</label><input class="sv" data-sieve="#8"></div>
-        <div class="svrow"><label>#16</label><input class="sv" data-sieve="#16"></div>
-        <div class="svrow"><label>#30</label><input class="sv" data-sieve="#30"></div>
-        <div class="svrow"><label>#50</label><input class="sv" data-sieve="#50"></div>
-        <div class="svrow"><label>#100</label><input class="sv" data-sieve="#100"></div>
-        <div class="svrow"><label>#200</label><input class="sv" data-sieve="#200"></div>
-      </div>
+    <div id="ph-feed"><div class="ctempty">Pick a mix to see what's been logged about it — results, changes, decisions.</div></div>
+    <div class="grid" style="grid-template-columns:1fr;margin-top:8px">
+      <div><label>Ask about this mix's history (optional)</label><input id="ph-q" placeholder="e.g. What did we change the last time voids ran low?"></div>
     </div>
     <div class="row">
-      <button type="button" class="ghost" data-close="scform">Cancel</button>
-      <button type="button" id="sc-go">Add to message</button>
+      <button type="button" class="ghost" data-close="phform">Cancel</button>
+      <button type="button" id="ph-go" disabled>Ask the agent</button>
     </div>
   </div>
 
@@ -530,7 +503,7 @@
       hideForms();
       f.hidden = !wasHidden;
       var df = chip.getAttribute("data-form");
-      if (!f.hidden && (df === "mixform" || df === "scform" || df === "pfform")) loadMixes();
+      if (!f.hidden && (df === "mixform" || df === "phform" || df === "pfform")) loadMixes();
       if (!f.hidden && df === "ctform") loadContracts();
       if (!f.hidden) { var first = f.querySelector("input,textarea"); if (first) first.focus(); }
     });
@@ -661,38 +634,51 @@
     if (mix.rap != null) tgt.push("RAP " + mix.rap + "%");
     if (tgt.length) lines.push("Design targets (mix pack " + mix.id + "): " + tgt.join(", "));
   }
-  // free-text "Other" toggles for the extra mix-selects
-  $("sc-mix").addEventListener("change", function () {
-    $("sc-mix-other").style.display = $("sc-mix").value === "other" ? "block" : "none";
-  });
+  // free-text "Other" toggle for the pay-factor mix-select
   $("pf-mix").addEventListener("change", function () {
     $("pf-mix-other").style.display = $("pf-mix").value === "other" ? "block" : "none";
   });
 
-  // ---------- Spec check (acceptance) ----------
-  $("sc-go").addEventListener("click", function () {
-    var v = function(id){ return $(id).value.trim(); };
-    var lines = ["Spec / acceptance check."];
-    var head = [];
-    var mix = pushMixHead(head, lines, "sc-mix", "sc-mix-other");
-    if (v("sc-cid")) head.push("Contract: " + v("sc-cid"));
-    if (v("sc-sublot")) head.push("Sublot/sample: " + v("sc-sublot"));
-    if (head.length) lines.push(head.join(" | "));
-    pushTargets(lines, mix);
-    if (v("sc-basis")) lines.push("Sample basis: " + v("sc-basis"));
-    var res = [];
-    if (v("sc-va")) res.push("Va " + v("sc-va") + "%");
-    if (v("sc-vma")) res.push("VMA " + v("sc-vma") + "%");
-    if (v("sc-gmm")) res.push("Gmm " + v("sc-gmm"));
-    if (v("sc-gmb")) res.push("Gmb " + v("sc-gmb"));
-    if (v("sc-ac")) res.push("AC (burn-off) " + v("sc-ac") + "%");
-    if (res.length) lines.push("Measured results: " + res.join(", "));
-    var sieves = [];
-    document.querySelectorAll("#scform .sv").forEach(function (s) {
-      if (s.value.trim()) sieves.push(s.getAttribute("data-sieve") + ": " + s.value.trim());
-    });
-    if (sieves.length) lines.push("Measured gradation (% passing): " + sieves.join(", "));
-    lines.push("Am I within the JMF production tolerances and this contract's special provisions? Give pass/fail on each property (gradation, AC, Va, VMA) with the margin to the limit, and flag anything out of tolerance.");
+  // ---------- Plant history ----------
+  var phMix = null;
+  function phDesig(name) {
+    var p = String(name || "").split(/\s+/);
+    return p.length > 1 ? p[1] : ""; // "0.38A", "No.4B", ...
+  }
+  $("ph-mix").addEventListener("change", function () {
+    phMix = selectedMix("ph-mix");
+    $("ph-go").disabled = !phMix;
+    if (!phMix) {
+      $("ph-feed").innerHTML = '<div class="ctempty">Pick a mix to see what\'s been logged about it — results, changes, decisions.</div>';
+      return;
+    }
+    $("ph-feed").innerHTML = '<div class="ctempty">Loading history…</div>';
+    fetch(ENDPOINT + "?history=1&jmf=" + encodeURIComponent(phMix.id) + "&desig=" + encodeURIComponent(phDesig(phMix.name)))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var e = d.entries || [];
+        if (!e.length) {
+          $("ph-feed").innerHTML = '<div class="ctempty">Nothing logged yet for ' + esc(phMix.name) + ". Entries land here when you use Log it or the agent records a result.</div>";
+          return;
+        }
+        var h = '<div class="ctcard"><div class="ctsec">Logged for ' + esc(phMix.name) + " (" + e.length + ")</div>";
+        e.forEach(function (en) {
+          var when = en.ts ? new Date(en.ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+          h += '<div class="ctrow" style="margin-bottom:6px"><span class="k">' + esc(when) + "</span>" + esc(en.text) +
+            (en.tags && en.tags.length ? ' <span style="color:var(--muted);font-size:11px">[' + esc(en.tags.join(", ")) + "]</span>" : "") + "</div>";
+        });
+        h += "</div>";
+        $("ph-feed").innerHTML = h;
+      })
+      .catch(function () { $("ph-feed").innerHTML = '<div class="ctempty">Couldn\'t load the plant log.</div>'; });
+  });
+  $("ph-go").addEventListener("click", function () {
+    if (!phMix) return;
+    var q = $("ph-q").value.trim();
+    var lines = ["Plant history question."];
+    lines.push("Mix design: " + phMix.name + " (JMF " + phMix.id + ")");
+    lines.push("First read the plant log for everything recorded about this mix (search by its JMF number, name, and " + phDesig(phMix.name) + "), then answer using that history as context.");
+    lines.push(q ? "Question: " + q : "Question: Summarize how this mix has been running — results, changes we made, what worked and what didn't.");
     composeToInput(lines.join("\n"));
   });
 
