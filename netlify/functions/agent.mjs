@@ -25,6 +25,15 @@ import linkData from "./data/contract_links.mjs";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = () => process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
+// Reasoning effort for the Claude path (Messages API output_config.effort).
+// Higher = more thorough (better mix-change reasoning), lower = faster/cheaper.
+// Set ANTHROPIC_EFFORT in the Netlify env to change it without a code deploy.
+// Claude-only — the xAI Grok path ignores this. Valid: low | medium | high | xhigh | max.
+const EFFORT_LEVELS = ["low", "medium", "high", "xhigh", "max"];
+const EFFORT = () => {
+  const v = String(process.env.ANTHROPIC_EFFORT || "high").toLowerCase();
+  return EFFORT_LEVELS.includes(v) ? v : "high";
+};
 const XAI_API_URL = "https://api.x.ai/v1/chat/completions";
 const XAI_MODEL = () => process.env.XAI_MODEL || "grok-4";
 const MAX_ROUNDS = 10;          // hard cap; doctrine says typical runs are 1-8
@@ -607,6 +616,7 @@ async function callClaude({ messages, toolChoice, onText }) {
     body: JSON.stringify({
       model: MODEL(),
       max_tokens: MAX_TOKENS,
+      output_config: { effort: EFFORT() },
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: withCacheBreakpoint(messages),
       tools: TOOLS,
