@@ -671,9 +671,20 @@ async function callClaude({ messages, toolChoice, onText }) {
 // Grok (xAI) provider — OpenAI-compatible chat completions, same loop contract
 // =============================================================================
 
+// Grok-only operating supplement. Grok is weaker at tool selection and tends to
+// answer from memory and truncate; this pushes it to retrieve first and return
+// complete, cited answers. Appended ONLY on the Grok path — Claude never sees it.
+const GROK_SUPPLEMENT = `OPERATING NOTES (read carefully):
+- RETRIEVE BEFORE YOU ANSWER. For any question touching a mix, sieve/gradation, volumetrics, a spec value, a Kentucky Method, a contract, a bid item, a special provision, a JMF, a Bailey principle, or plant history — call the relevant tool(s) FIRST. Do NOT answer engineering questions from memory.
+- TOOL MAP: mix design / bins / volumetrics / targets -> get_jmf. Spec value / acceptance / test method -> search_spec. Aggregate packing / blend theory -> search_bailey. A named job / CID / bid item / special provision -> search_contracts. Past results, decisions, "has this happened before" -> plant_log (read). Recording a result or decision the user reports -> plant_log (write).
+- You MAY call several tools in one round. If a search returns nothing useful, retry once with different keywords before concluding the corpus lacks it.
+- ANSWERS MUST BE COMPLETE, not just a headline. Keep the "Bottom line" short, but the "Details" section MUST carry the reasoning chain, the actual numbers and tolerances, and bracket citations with record ids — e.g. [SPEC p.412], [KM p.88], [JMF 00260116], [CID 251026 line 0320]. Never state a spec value, target, or recommendation without citing the retrieved record it came from.
+- FOLLOW THE DOCTRINE ABOVE: establish the JMF first; check special provisions when a contract is in play; run the questionable-sample / representativeness check before ANY blend-change recommendation; keep recommendations advisory, with the reasoning shown.
+- If a tool fails or a source is unavailable, say so plainly and answer around it. Never invent values or citations.`;
+
 // Internal history uses Anthropic-style content blocks; convert to OpenAI shape.
 function toOpenAiMessages(messages) {
-  const out = [{ role: "system", content: SYSTEM_PROMPT }];
+  const out = [{ role: "system", content: SYSTEM_PROMPT + "\n\n" + GROK_SUPPLEMENT }];
   for (const m of messages) {
     const blocks = Array.isArray(m.content) ? m.content : [{ type: "text", text: String(m.content || "") }];
     if (m.role === "assistant") {
@@ -711,6 +722,7 @@ async function callGrok({ messages, toolChoice, onText }) {
     body: JSON.stringify({
       model: XAI_MODEL(),
       max_tokens: MAX_TOKENS,
+      temperature: 0.3,  // lower = tighter, more consistent engineering answers
       messages: toOpenAiMessages(messages),
       tools: OPENAI_TOOLS(),
       tool_choice: toolChoice && toolChoice.type === "none" ? "none" : "auto",
