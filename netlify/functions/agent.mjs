@@ -867,6 +867,12 @@ function shortProducer(p) {
   return base.split(/\s+/)[0];
 }
 
+// Design Gmb at Ndes from Gmm and design air voids (Gmb = Gmm * (1 - Va/100)).
+function gmbAtNdes(gmm, va) {
+  if (gmm == null || va == null) return null;
+  return Math.round(gmm * (1 - va / 100) * 1000) / 1000;
+}
+
 function mixSummaries() {
   const recs = jmfData.records || jmfData;
   return recs
@@ -883,6 +889,7 @@ function mixSummaries() {
       ),
       ac: r.recycle && r.recycle.total_ac_in_mix_pct != null ? r.recycle.total_ac_in_mix_pct : (r.design_volumetrics || {}).optimum_ac_pct,
       gmm: (r.design_volumetrics || {}).gmm,
+      gmb: gmbAtNdes((r.design_volumetrics || {}).gmm, (r.design_volumetrics || {}).air_voids_pct),
       va: (r.design_volumetrics || {}).air_voids_pct,
       rap: r.recycle ? r.recycle.rap_total_pct : 0,
       released: r.dates ? r.dates.released || null : null,

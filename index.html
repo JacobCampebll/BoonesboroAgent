@@ -140,20 +140,20 @@
       <div><label>Contract #</label><input id="mf-cid" placeholder="251026"></div>
       <div><label>Tons into production</label><input id="mf-tons" placeholder="100"></div>
       <div><label>Sample basis</label><select id="mf-basis"><option value="">—</option><option>Single sample</option><option>Trend (multiple samples)</option></select></div>
-      <div><label>Air voids (Va %)</label><input id="mf-va" placeholder="1.7"></div>
-      <div><label>VMA %</label><input id="mf-vma" placeholder="15.2"></div>
-      <div><label>Gmm (MSG)</label><input id="mf-gmm" placeholder="2.461"></div>
-      <div><label>Gmb (BSG)</label><input id="mf-gmb" placeholder="2.419"></div>
-      <div><label>AC % (burn-off)</label><input id="mf-ac" placeholder="6.0"></div>
+      <div><label>Air voids (Va %)</label><input id="mf-va"></div>
+      <div><label>VMA %</label><input id="mf-vma"></div>
+      <div><label>Gmm (MSG)</label><input id="mf-gmm"></div>
+      <div><label>Gmb (BSG)</label><input id="mf-gmb"></div>
+      <div><label>AC % (burn-off)</label><input id="mf-ac"></div>
     </div>
     <div class="split">
       <div class="split-left">
         <label class="sect">Current bin splits</label>
         <div class="binhead"><span>%</span><span>Aggregate type</span><span>Location / source</span></div>
-        <div class="binrow"><input class="bin-pct" placeholder="44"><input class="bin-type" placeholder="#8s"><input class="bin-loc" placeholder="Haydon"></div>
-        <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="#10s washed"><input class="bin-loc"></div>
-        <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="natural sand"><input class="bin-loc"></div>
-        <div class="binrow"><input class="bin-pct"><input class="bin-type" placeholder="RAP"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
+        <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
         <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
         <div class="binrow"><input class="bin-pct"><input class="bin-type"><input class="bin-loc"></div>
         <label class="sect">What's happening / drifting?</label>
@@ -479,6 +479,8 @@
       s.value = t == null ? "" : String(t);
     });
     if (m.ac != null) $("mf-ac").value = String(m.ac);
+    if (m.gmm != null) $("mf-gmm").value = String(m.gmm);
+    if (m.gmb != null) $("mf-gmb").value = String(m.gmb);
   });
   document.querySelectorAll("[data-close]").forEach(function (btn) {
     btn.addEventListener("click", function(){ $(btn.getAttribute("data-close")).hidden = true; });
