@@ -495,7 +495,7 @@
 
   // ---------- preset forms ----------
   function $(id){ return document.getElementById(id); }
-  function hideForms(){ ["mixform","logform"].forEach(function(id){ $(id).hidden = true; }); }
+  function hideForms(){ document.querySelectorAll(".preset-form").forEach(function(f){ f.hidden = true; }); }
   document.querySelectorAll(".pchip").forEach(function (chip) {
     chip.addEventListener("click", function () {
       var f = $(chip.getAttribute("data-form"));
