@@ -26,14 +26,17 @@ An AI QC / mix-design assistant for **The Allen Company's Boonesborough Asphalt 
 - **PWA:** `manifest.webmanifest`, `sw.js` (cache-first shell, network-first navigation, never
   intercepts `/.netlify/`), icons rasterized from the real Allen Company logo (`allen-logo.png`).
 
-## The six tools (in `agent.mjs`)
+## The seven tools (in `agent.mjs`)
 1. `search_bailey` — Bailey Method KB (BM25 over `data/bailey_kb.mjs`)
-2. `search_spec` — KYTC Standard Specs + Kentucky Methods (`data/spec.mjs`, 3,859 chunks)
-3. `search_contracts` — proposals/contracts corpus (`data/proposals.mjs`: 23 jobs / 1,603 bid
+2. `bailey_calc` — **deterministic** Bailey/plant calculator (`bailey_calc.mjs`): control sieves
+   (Half/PCS/SCS/TCS), CA/FAc/FAf, sieve deltas, VMA sensitivity RoTs, AC→Va via ACVC 2.25.
+   Prefer this for mix-change numbers; search_bailey for narrative + citations.
+3. `search_spec` — KYTC Standard Specs + Kentucky Methods (`data/spec.mjs`, 3,859 chunks)
+4. `search_contracts` — proposals/contracts corpus (`data/proposals.mjs`: 23 jobs / 1,603 bid
    items / 5,618 passages). On-demand only.
-4. `get_jmf` — plant JMFs (`data/jmf_records.mjs`, **14 mix designs**)
-5. `query_dataverse` — **STUB**, pending IT hookup (Fabric MCP). Returns "unavailable" until wired.
-6. `plant_log` — persistent memory via **Netlify Blobs** (store `plant-log`, key `entries`,
+5. `get_jmf` — plant JMFs (`data/jmf_records.mjs`, **14 mix designs**)
+6. `query_dataverse` — **STUB**, pending IT hookup (Fabric MCP). Returns "unavailable" until wired.
+7. `plant_log` — persistent memory via **Netlify Blobs** (store `plant-log`, key `entries`,
    500-entry cap, in-memory fallback when Blobs unavailable). read/write actions.
 
 ## GET endpoints on the same function (used by the UI, no model call)

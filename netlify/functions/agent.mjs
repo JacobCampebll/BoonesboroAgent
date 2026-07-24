@@ -1,7 +1,7 @@
 // =============================================================================
 // Boonesboro Lab Agent (BT3) — combined agentic loop, single Netlify function
 // -----------------------------------------------------------------------------
-// One agent, five retrieval tools. The function runs a tool-use loop:
+// One agent, seven tools (six retrieval + deterministic bailey_calc). Tool-use loop:
 // call Claude with tool definitions -> execute requested retrievals server-side
 // -> append results -> call again -> repeat until final answer.
 // Streams SSE events to the frontend (text deltas, tool activity, errors).
@@ -22,6 +22,7 @@ import specData from "./data/spec.mjs";
 import proposals from "./data/proposals.mjs";
 import jmfData from "./data/jmf_records.mjs";
 import linkData from "./data/contract_links.mjs";
+import { baileyCalc } from "./bailey_calc.mjs";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = () => process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
@@ -520,7 +521,76 @@ const TOOLS = [
       required: ["action"],
     },
   },
+  {
+    name: "bailey_calc",
+    description:
+      "DETERMINISTIC Bailey / plant calculator (no LLM math). Call this on ANY mix-change, out-of-spec, or " +
+      "blend-troubleshooting question once you know the JMF and have sample numbers. Computes control sieves " +
+      "(Half/PCS/SCS/TCS), CA / FAc / FAf ratios, sieve-by-sieve sample−design deltas, VMA sensitivity " +
+      "rules-of-thumb, and AC→Va estimates (ACVC 2.25 / plant ±0.1% AC ≈ ∓0.22–0.25% Va). " +
+      "Actions: 'analyze' (default) design vs sample; 'ratios' single gradation; 'ac_effect' binder lever only. " +
+      "Prefer jmf_id to load design gradation/targets from the plant pack. Gradation keys may be labels (#4, 3/8\") " +
+      "or mm (4.75). USE THESE NUMBERS in your answer — do not re-derive ratios by hand.",
+    input_schema: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          enum: ["analyze", "ratios", "ac_effect"],
+          description: "Default analyze.",
+        },
+        jmf_id: {
+          type: "string",
+          description: "Plant JMF id (e.g. 00260116) — loads design_gradation, design AC/Va/VMA from the pack.",
+        },
+        design_gradation: {
+          type: "object",
+          description: "Design % passing by sieve (labels or mm). Optional if jmf_id provided.",
+        },
+        sample_gradation: {
+          type: "object",
+          description: "Burn-off / production % passing by sieve.",
+        },
+        gradation: {
+          type: "object",
+          description: "ratios action: single gradation % passing.",
+        },
+        nmas_mm: { type: "number", description: "Override Bailey NMAS (mm) if known." },
+        mix_type: {
+          type: "string",
+          enum: ["auto", "fine", "coarse", "sma"],
+          description: "Override mix classification. Default auto from %PCS vs 0.45 MDL.",
+        },
+        design_ac: { type: "number", description: "Design total AC %." },
+        sample_ac: { type: "number", description: "Burn-off / measured total AC %." },
+        design_va: { type: "number" },
+        sample_va: { type: "number" },
+        design_vma: { type: "number" },
+        sample_vma: { type: "number" },
+        proposed_ac_delta: {
+          type: "number",
+          description: "ac_effect or analyze: proposed change in AC % (e.g. -0.1 to drop binder).",
+        },
+        acvc: {
+          type: "number",
+          description: "AC volume correction factor. Default 2.25.",
+        },
+      },
+      required: [],
+    },
+  },
 ];
+
+function getJmfRecord(id) {
+  const q = String(id || "").trim();
+  if (!q) return null;
+  const digits = q.replace(/\D/g, "");
+  const records = jmfData.records || [];
+  return records.find((r) =>
+    r.jmf_id === q || r.mix_id_num === q || r.sm_id_num === q ||
+    (digits.length >= 4 && (r.jmf_id.endsWith(digits) || String(r.mix_id_num).endsWith(digits)))
+  ) || null;
+}
 
 async function execTool(name, input) {
   try {
@@ -532,6 +602,9 @@ async function execTool(name, input) {
       case "get_jmf": payload = getJmf(input); break;
       case "query_dataverse": payload = await queryDataverse(input); break;
       case "plant_log": payload = await plantLog(input); break;
+      case "bailey_calc":
+        payload = baileyCalc(input || {}, { getJmfRecord });
+        break;
       default: return { ok: false, text: `Unknown tool: ${name}` };
     }
     const ok = !(payload && (payload.error || payload.status === "error"));
@@ -545,10 +618,11 @@ async function execTool(name, input) {
 // System prompt — orchestration doctrine
 // =============================================================================
 
-const SYSTEM_PROMPT = `You are the Boonesboro Lab Agent — the combined QC / mix-design assistant for The Allen Company's Boonesborough Asphalt Plant (plant folder BT3). You serve the plant's lab techs and mix designers. You are ONE agent with six tools; you decide what to retrieve and you do the analysis yourself.
+const SYSTEM_PROMPT = `You are the Boonesboro Lab Agent — the combined QC / mix-design assistant for The Allen Company's Boonesborough Asphalt Plant (plant folder BT3). You serve the plant's lab techs and mix designers. You are ONE agent with seven tools; you decide what to retrieve and you do the analysis yourself.
 
 DATA SOURCES
-- search_bailey: Bailey Method KB (course slides, heuristics, worked examples). Aggregate packing & blend reasoning.
+- search_bailey: Bailey Method KB (course slides, heuristics, worked examples). Narrative packing theory & citations.
+- bailey_calc: DETERMINISTIC calculator — control sieves, CA/FAc/FAf, sieve deltas, VMA sensitivity RoTs, AC→Va (ACVC 2.25). Use for numbers on mix changes; search_bailey for the "why" and citations.
 - search_spec: 2026 KYTC Standard Specifications [SPEC] + Kentucky Methods [KM].
 - search_contracts: proposals index (jobs, bid items, special provisions) + JMF↔contract links.
 - get_jmf: approved mix designs for THIS plant (gradations, bins, volumetrics, targets).
@@ -560,7 +634,7 @@ ORCHESTRATION RULES (strict)
 2. JMF FIRST — AND NEVER REFUSE ANALYSIS FOR LACK OF ONE. Before analyzing any test result, sample, or mix problem, establish which JMF it belongs to (get_jmf); if it's ambiguous, state your assumption explicitly or ask. If no exact JMF matches, a get_jmf miss returns the full list of plant JMFs — pick the closest match by mix class/size, state that assumption, and proceed. If none fits, analyze against the targets and data the user supplied in their message. "I couldn't find the JMF" is never a reason to skip the analysis. Contract lookup (search_contracts) is ON-DEMAND: use it only when the user names a specific job/contract/CID or asks about bid items, quantities, or special provisions — not on general spec, Bailey, or mix questions.
 2b. JMF FINGERPRINT CHECK — CRITICAL. The plant runs MULTIPLE designs of the same class/size (several 0.38A's, 0.38D's) with different aggregate sources and RAP percentages. A mix class alone does NOT identify a JMF. When the user supplies bin splits, aggregates, or RAP %, verify them against the candidate JMF's bins BEFORE using its targets: if they disagree (different RAP %, different sources or percentages), that is the WRONG DESIGN — say so plainly, do NOT present its Gmm/AC/gradation targets as this mix's targets (wrong-design targets corrupt the entire analysis), and either find the JMF whose bins match or ask the user for the JMF number / correct targets and analyze against what they supply. ALWAYS state which JMF you used and the fingerprint that justified it, e.g. "using JMF 00260116 — matches your 13% RAP and Haydon 8s 44%".
 3. SPECIAL PROVISIONS OVERRIDE — WHEN A CONTRACT IS IN PLAY. If the user identified a contract (or the discussion is clearly about one specific job), check that contract's special provisions (search_contracts with the CID + topic) before quoting the Standard Specifications as governing; if an SP addresses the topic it governs — cite it and note that it overrides SPEC. If no contract was given, answer from the Standard Specifications and add one short caveat that a job-specific special provision could override — invite the user to give the CID to confirm.
-4. DIAGNOSE AND GIVE REAL CHANGES — ENGINEERING FIRST. When a result is out of spec, the tech may need to act immediately to keep production in spec and KYTC satisfied — so lead with the engineering, not with process caveats. Compare the burn-off gradation and AC against the JMF targets sieve by sieve, identify what is driving the miss (which control sieves, dust content, AC volume, coarse/fine packing per the Bailey method), and give specific adjustment options: which bin(s), which direction, an approximate magnitude (e.g. "drop natural sand 2-3 points into the #8s"), and the expected effect on Va/VMA — with Bailey reasoning and citations. Sample confidence is a SIZING input, not a gate: when the trigger is a single sample or an unusual swing, say so in one line, size the move conservatively (the smaller reversible change), and recommend confirming with the next test WHILE the change runs. Recommending "resample and wait" as the only action is wrong — the tech can resample and adjust at the same time. Plant rule of thumb (lab-confirmed): ±0.1% AC ≈ ∓0.22–0.25% Va (this is the Bailey AC-volume factor of 2.25 applied) — when voids and dust are BOTH low, weigh the binder-volume lever (AC content, and verifying the AC/Gmm measurements) alongside gradation moves. The plant meters RAP binder contribution automatically, so AC targets are total-AC; do not double-count RAP binder when the user changes RAP percentage.
+4. DIAGNOSE AND GIVE REAL CHANGES — ENGINEERING FIRST. When a result is out of spec, the tech may need to act immediately to keep production in spec and KYTC satisfied — so lead with the engineering, not with process caveats. After JMF fingerprinting, call bailey_calc (action=analyze) with jmf_id + sample_gradation + sample AC/Va/VMA when the user gave numbers — use its sieve deltas, ratios, control flags, VMA sensitivity estimate, and AC→Va estimate as the numeric backbone of the diagnosis (do not invent CA/FAc/FAf or ΔVa-from-AC by hand). Then identify what is driving the miss (which control sieves, dust, AC volume, packing) and give specific adjustment options: which bin(s), which direction, an approximate magnitude (e.g. "drop natural sand 2-3 points into the #8s"), and the expected effect on Va/VMA — with Bailey reasoning and citations (search_bailey for narrative/ids; bailey_calc for the math). Sample confidence is a SIZING input, not a gate: when the trigger is a single sample or an unusual swing, say so in one line, size the move conservatively (the smaller reversible change), and recommend confirming with the next test WHILE the change runs. Recommending "resample and wait" as the only action is wrong — the tech can resample and adjust at the same time. Plant rule of thumb (lab-confirmed): ±0.1% AC ≈ ∓0.22–0.25% Va (ACVC 2.25) — when voids and dust are BOTH low, weigh the binder-volume lever (AC content, and verifying the AC/Gmm measurements) alongside gradation moves. The plant meters RAP binder contribution automatically, so AC targets are total-AC; do not double-count RAP binder when the user changes RAP percentage.
 5. ADVISORY, NEVER DIRECTIVE. Recommendations are advisory options for the mix designer, with the reasoning chain and citations shown. Never phrase them as orders or as the only course of action.
 6. CITE EVERYTHING RETRIEVED. Use bracket citations with record ids: [day2-slide-047], [SPEC p.412], [KM p.88], [JMF 00260116], [CID 252112 line 0320], [CID 252112 p01234]. If a cited record has verified=false, put "⚠ unverified" inside the bracket: [JMF 00260116 ⚠ unverified]. Do not cite what you did not retrieve.
 7. MULTI-PART MESSAGES: retrieve separately per sub-question. You may issue several tool calls in a single round — batch independent retrievals.
@@ -688,9 +762,9 @@ async function callClaude({ messages, toolChoice, onText }) {
 // complete, cited answers. Appended ONLY on the Grok path — Claude never sees it.
 const GROK_SUPPLEMENT = `OPERATING NOTES (read carefully):
 - RETRIEVE BEFORE YOU ANSWER. For any question touching a mix, sieve/gradation, volumetrics, a spec value, a Kentucky Method, a contract, a bid item, a special provision, a JMF, a Bailey principle, or plant history — call the relevant tool(s) FIRST. Do NOT answer engineering questions from memory.
-- TOOL MAP: mix design / bins / volumetrics / targets -> get_jmf. Spec value / acceptance / test method -> search_spec. Aggregate packing / blend theory -> search_bailey. A named job / CID / bid item / special provision -> search_contracts. Past results, decisions, "has this happened before" -> plant_log (read). Recording a result or decision the user reports -> plant_log (write).
+- TOOL MAP: mix design / bins / volumetrics / targets -> get_jmf. Out-of-spec / mix change / burn-off vs design / Va-AC lever -> bailey_calc (after JMF id known; pass jmf_id + sample_gradation + AC/Va). Aggregate packing theory / citations -> search_bailey. Spec value / acceptance / test method -> search_spec. A named job / CID / bid item / special provision -> search_contracts. Past results, decisions, "has this happened before" -> plant_log (read). Recording a result or decision the user reports -> plant_log (write).
 - You MAY call several tools in one round. If a search returns nothing useful, retry once with different keywords before concluding the corpus lacks it.
-- ANSWERS MUST BE COMPLETE, not just a headline. Keep the "Bottom line" short, but the "Details" section MUST carry the reasoning chain, the actual numbers and tolerances, and bracket citations with record ids — e.g. [SPEC p.412], [KM p.88], [JMF 00260116], [CID 251026 line 0320]. Never state a spec value, target, or recommendation without citing the retrieved record it came from.
+- ANSWERS MUST BE COMPLETE, not just a headline. Keep the "Bottom line" short, but the "Details" section MUST carry the reasoning chain, the actual numbers and tolerances, and bracket citations with record ids — e.g. [SPEC p.412], [KM p.88], [JMF 00260116], [CID 251026 line 0320]. Never state a spec value, target, or recommendation without citing the retrieved record it came from. For ratios and ΔVa-from-AC, cite bailey_calc output (not memory).
 - FOLLOW THE DOCTRINE ABOVE: establish the JMF first (closest match if no exact hit — never refuse analysis), and FINGERPRINT-CHECK it: the chosen JMF's bins/RAP % must match what the user stated, or it is the wrong design — never use a mismatched JMF's targets, and always name the JMF you used. Check special provisions when a contract is in play; on out-of-spec results LEAD with the diagnosis and specific adjustment options (bins, direction, magnitude, expected Va/VMA effect, Bailey reasoning). Single sample or odd swing = say so in one line, size the move conservatively, and confirm with the next test while the change runs — never "resample and wait" as the only action.
 - If a tool fails or a source is unavailable, say so plainly and answer around it. Never invent values or citations.`;
 
@@ -1101,4 +1175,4 @@ export default async (req) => {
 };
 
 // Named exports for local smoke-testing only (ignored by Netlify)
-export { searchBailey, searchSpec, searchContracts, getJmf, queryDataverse, plantLog, execTool, tokenize, BM25, toOpenAiMessages, callGrok };
+export { searchBailey, searchSpec, searchContracts, getJmf, queryDataverse, plantLog, execTool, tokenize, BM25, toOpenAiMessages, callGrok, baileyCalc, getJmfRecord };

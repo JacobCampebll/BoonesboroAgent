@@ -1,6 +1,6 @@
 # Boonesboro Lab Agent (BT3)
 
-One agentic loop, five retrieval tools, for the Boonesborough Asphalt Plant. Single-page frontend + one streaming Netlify function that runs the tool-use loop server-side (same architecture as bailey-chat-site / KYTC Spec Assistant, plus the loop).
+One agentic loop, seven tools (Bailey KB, deterministic Bailey calculator, SPEC/KM, contracts, JMFs, Dataverse stub, plant log) for the Boonesborough Asphalt Plant. Single-page frontend + one streaming Netlify function that runs the tool-use loop server-side.
 
 ## Deploy
 
