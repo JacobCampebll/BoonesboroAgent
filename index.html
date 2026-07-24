@@ -79,10 +79,21 @@
   button:disabled{background:#e0e0e0;color:#9a9a9a;cursor:default}
   button.stop{background:#d64545;color:#fff}
   .hint{color:#b0b0b0;font-size:11.5px;margin-top:6px;text-align:center}
-  .presets{display:flex;gap:8px;margin:0 0 8px}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 8px}
   .pchip{background:var(--panel);color:var(--text);border:1px solid #dcdcdc;border-radius:999px;
     padding:7px 14px;font:600 12.5px/1 inherit;cursor:pointer}
   .pchip:hover{background:#ececec}
+  .bc-out{margin:8px 0 4px;max-height:340px;overflow:auto}
+  .bc-out .bch{font-size:12px;font-weight:700;margin:10px 0 4px;color:var(--text)}
+  .bc-out .bcm{color:var(--muted);font-size:12.5px;margin:0 0 6px}
+  .bc-out table{border-collapse:collapse;width:100%;font-size:12.5px}
+  .bc-out th,.bc-out td{text-align:left;padding:3px 8px;border-bottom:1px solid #efefef}
+  .bc-out th{color:var(--muted);font-size:10.5px;text-transform:uppercase;font-weight:600}
+  .bc-out td.num,.bc-out th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .bc-out .flag{display:inline-block;background:#fff6e0;border:1px solid #eeda9f;color:#8a6400;
+    border-radius:6px;padding:2px 8px;margin:0 4px 4px 0;font-size:11.5px;font-weight:600}
+  .bc-out .okpill{display:inline-block;background:#eef6ee;border:1px solid #cfe4cf;color:#2f6f36;
+    border-radius:6px;padding:2px 8px;margin:0 4px 4px 0;font-size:11.5px;font-weight:600}
   .preset-form{background:var(--bg);border:1px solid #dcdcdc;border-radius:16px;padding:14px;
     margin:0 0 10px;box-shadow:0 2px 14px rgba(0,0,0,.05)}
   .preset-form .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:8px}
@@ -144,6 +155,7 @@
 <footer>
   <div class="presets">
     <button type="button" class="pchip" data-form="mixform">Mix change</button>
+    <button type="button" class="pchip" data-form="bcform">Bailey calc</button>
     <button type="button" class="pchip" data-form="phform">Plant history</button>
     <button type="button" class="pchip" data-form="pfform">Pay factor</button>
     <button type="button" class="pchip" data-form="ctform">Contracts</button>
@@ -241,6 +253,60 @@
     <div class="row">
       <button type="button" class="ghost" data-close="ctform">Cancel</button>
       <button type="button" id="ct-ask" disabled>Ask the agent about this contract</button>
+    </div>
+  </div>
+
+  <div id="bcform" class="preset-form" hidden>
+    <p style="font-size:12px;color:var(--muted);margin:0 2px 10px">Deterministic Bailey calculator (no AI). Pick a mix for design targets, enter the burn-off / sample, hit <b>Run calc</b> for ratios, sieve deltas, VMA levers, and AC→Va. Then optionally ask the agent to interpret.</p>
+    <div class="grid">
+      <div><label>Mix design (loads design gradation)</label>
+        <select id="bc-mix" class="mix-select"><option value="">Loading mixes…</option></select>
+      </div>
+      <div><label>Mix type</label>
+        <select id="bc-type">
+          <option value="auto">Auto (from %PCS)</option>
+          <option value="coarse">Coarse-graded</option>
+          <option value="fine">Fine-graded</option>
+          <option value="sma">SMA</option>
+        </select>
+      </div>
+      <div><label>Sample AC % (burn-off)</label><input id="bc-ac-s" inputmode="decimal"></div>
+      <div><label>Sample Va %</label><input id="bc-va-s" inputmode="decimal"></div>
+      <div><label>Sample VMA %</label><input id="bc-vma-s" inputmode="decimal"></div>
+      <div><label>Design AC % (optional override)</label><input id="bc-ac-d" inputmode="decimal" placeholder="from mix pack"></div>
+      <div><label>Design Va % (optional)</label><input id="bc-va-d" inputmode="decimal" placeholder="from mix pack"></div>
+      <div><label>Design VMA % (optional)</label><input id="bc-vma-d" inputmode="decimal"></div>
+      <div><label>Proposed AC change (pts, optional)</label><input id="bc-ac-delta" inputmode="decimal" placeholder="e.g. -0.1"></div>
+    </div>
+    <div class="split">
+      <div class="split-left">
+        <label class="sect">Design vs sample notes</label>
+        <div id="bc-design-hint" class="ctempty">Pick a mix to load design targets and gradation.</div>
+        <label class="sect" style="margin-top:10px">What to ask the agent (optional)</label>
+        <textarea id="bc-q" placeholder="e.g. Which bins should I move given these ratios?"></textarea>
+      </div>
+      <div class="split-right">
+        <label class="sect">Sample / burn-off gradation (% passing)</label>
+        <div class="svrow"><label>2"</label><input class="bc-sv" data-sieve='2"'></div>
+        <div class="svrow"><label>1 1/2"</label><input class="bc-sv" data-sieve='1 1/2"'></div>
+        <div class="svrow"><label>1"</label><input class="bc-sv" data-sieve='1"'></div>
+        <div class="svrow"><label>3/4"</label><input class="bc-sv" data-sieve='3/4"'></div>
+        <div class="svrow"><label>1/2"</label><input class="bc-sv" data-sieve='1/2"'></div>
+        <div class="svrow"><label>3/8"</label><input class="bc-sv" data-sieve='3/8"'></div>
+        <div class="svrow"><label>#4</label><input class="bc-sv" data-sieve="#4"></div>
+        <div class="svrow"><label>#8</label><input class="bc-sv" data-sieve="#8"></div>
+        <div class="svrow"><label>#16</label><input class="bc-sv" data-sieve="#16"></div>
+        <div class="svrow"><label>#30</label><input class="bc-sv" data-sieve="#30"></div>
+        <div class="svrow"><label>#50</label><input class="bc-sv" data-sieve="#50"></div>
+        <div class="svrow"><label>#100</label><input class="bc-sv" data-sieve="#100"></div>
+        <div class="svrow"><label>#200</label><input class="bc-sv" data-sieve="#200"></div>
+      </div>
+    </div>
+    <div id="bc-out" class="bc-out" hidden></div>
+    <div class="row">
+      <button type="button" class="ghost" data-close="bcform">Cancel</button>
+      <button type="button" class="ghost" id="bc-ask" disabled>Ask the agent</button>
+      <button type="button" id="bc-run">Run calc</button>
     </div>
   </div>
 
@@ -503,9 +569,9 @@
       hideForms();
       f.hidden = !wasHidden;
       var df = chip.getAttribute("data-form");
-      if (!f.hidden && (df === "mixform" || df === "phform" || df === "pfform")) loadMixes();
+      if (!f.hidden && (df === "mixform" || df === "phform" || df === "pfform" || df === "bcform")) loadMixes();
       if (!f.hidden && df === "ctform") loadContracts();
-      if (!f.hidden) { var first = f.querySelector("input,textarea"); if (first) first.focus(); }
+      if (!f.hidden) { var first = f.querySelector("input,textarea,select"); if (first) first.focus(); }
     });
   });
 
@@ -755,6 +821,250 @@
     lines.push("Contract " + c.id + (c.description ? " — " + c.description : "") + (c.county ? " (" + c.county + " County)" : "") +
       (c.compaction_option ? " · Compaction Option " + c.compaction_option : ""));
     lines.push("What special provisions apply to this job, which compaction option governs acceptance and pay, and what should a QC tech watch for before running mix on it? Cite the special-provision language.");
+    composeToInput(lines.join("\n"));
+  });
+
+  // ---------- Bailey calc (deterministic, no model) ----------
+  var bcLast = null; // last calc result + inputs for "Ask the agent"
+  function bcCollectGrad(cls) {
+    var g = {};
+    document.querySelectorAll(cls).forEach(function (s) {
+      var v = s.value.trim();
+      if (v !== "") g[s.getAttribute("data-sieve")] = parseFloat(v);
+    });
+    return g;
+  }
+  function bcNum(id) {
+    var t = $(id).value.trim();
+    if (!t) return null;
+    var n = parseFloat(t);
+    return Number.isFinite(n) ? n : null;
+  }
+  $("bc-mix").addEventListener("change", function () {
+    var m = selectedMix("bc-mix");
+    bcLast = null;
+    $("bc-ask").disabled = true;
+    $("bc-out").hidden = true;
+    if (!m) {
+      $("bc-design-hint").className = "ctempty";
+      $("bc-design-hint").textContent = "Pick a mix to load design targets and gradation.";
+      return;
+    }
+    // Prefill sample sieves with design so tech edits the burn-off
+    document.querySelectorAll("#bcform .bc-sv").forEach(function (s) {
+      var t = m.grad[s.getAttribute("data-sieve")];
+      s.value = t == null ? "" : String(t);
+    });
+    if (m.ac != null) { $("bc-ac-d").value = String(m.ac); $("bc-ac-s").value = String(m.ac); }
+    if (m.va != null) { $("bc-va-d").value = String(m.va); $("bc-va-s").value = ""; }
+    $("bc-vma-d").value = "";
+    $("bc-vma-s").value = "";
+    $("bc-ac-delta").value = "";
+    var bits = [];
+    bits.push("JMF " + m.id);
+    if (m.ac != null) bits.push("AC " + m.ac + "%");
+    if (m.va != null) bits.push("Va " + m.va + "%");
+    if (m.gmm != null) bits.push("Gmm " + m.gmm);
+    if (m.rap != null) bits.push("RAP " + m.rap + "%");
+    if (m.bins && m.bins.length) {
+      bits.push("bins: " + m.bins.map(function (b) {
+        return (b.pct != null ? b.pct + "% " : "") + (b.type || "") + (b.loc ? " (" + b.loc + ")" : "");
+      }).join(", "));
+    }
+    $("bc-design-hint").className = "bcm";
+    $("bc-design-hint").textContent = m.name + " — " + bits.join(" · ") + ". Sieves prefilled with design — overwrite with burn-off.";
+  });
+  function renderBaileyResult(r) {
+    var h = "";
+    if (r.error) {
+      h = '<div class="errbox" style="margin:0">⚠ ' + esc(String(r.error)) + "</div>";
+      $("bc-out").innerHTML = h;
+      $("bc-out").hidden = false;
+      return;
+    }
+    h += '<div class="bch">Controls · NMAS ' + esc(String(r.nmas_mm)) + " mm (" + esc(r.nmas_label || "") + ")</div>";
+    if (r.controls) {
+      h += '<span class="okpill">Half ' + esc(r.controls.half.label) + "</span>";
+      h += '<span class="okpill">PCS ' + esc(r.controls.pcs.label) + "</span>";
+      h += '<span class="okpill">SCS ' + esc(r.controls.scs.label) + "</span>";
+      h += '<span class="okpill">TCS ' + esc(r.controls.tcs.label) + "</span>";
+    }
+    if (r.mix_classification) {
+      h += '<div class="bcm" style="margin-top:6px">' + esc(r.mix_type_used || "") + " — " + esc(r.mix_classification.reason || "") + "</div>";
+    }
+    if (r.jmf_used) {
+      h += '<div class="bcm">JMF ' + esc(r.jmf_used.jmf_id) + (r.jmf_used.name ? " · " + esc(r.jmf_used.name) : "") + "</div>";
+    }
+
+    function ratioTable(title, ratios) {
+      if (!ratios || ratios.error) return "";
+      var s = ratios.sieves || {};
+      var t = '<div class="bch">' + title + "</div><table><thead><tr><th></th><th class=\"num\">% pass</th><th>Ratio</th><th class=\"num\">Value</th></tr></thead><tbody>";
+      [["Half", s.half], ["PCS", s.pcs], ["SCS", s.scs], ["TCS", s.tcs]].forEach(function (row) {
+        var lab = row[0], cell = row[1];
+        if (!cell) return;
+        t += "<tr><td>" + lab + " (" + esc(cell.label) + ')</td><td class="num">' + (cell.pct_passing != null ? cell.pct_passing : "—") + "</td><td></td><td></td></tr>";
+      });
+      t += '<tr><td colspan="2"></td><td>CA</td><td class="num">' + (ratios.ca_ratio != null ? ratios.ca_ratio : "—") + "</td></tr>";
+      t += '<tr><td colspan="2"></td><td>FAc</td><td class="num">' + (ratios.fac_ratio != null ? ratios.fac_ratio : "—") + "</td></tr>";
+      t += '<tr><td colspan="2"></td><td>FAf</td><td class="num">' + (ratios.faf_ratio != null ? ratios.faf_ratio : "—") + "</td></tr>";
+      t += "</tbody></table>";
+      return t;
+    }
+    h += ratioTable("Design ratios", r.design_ratios);
+    h += ratioTable("Sample ratios", r.sample_ratios);
+
+    if (r.control_sieve_flags && r.control_sieve_flags.length) {
+      h += '<div class="bch">Control sieve flags</div>';
+      r.control_sieve_flags.forEach(function (f) {
+        h += '<span class="flag">' + esc(f.control) + " " + (f.delta_pct > 0 ? "+" : "") + f.delta_pct + "% · " + esc(f.meaning) + "</span>";
+      });
+    }
+
+    if (r.sieve_deltas && r.sieve_deltas.length) {
+      h += '<div class="bch">Sieve deltas (sample − design)</div><table><thead><tr><th>Sieve</th><th class="num">Design</th><th class="num">Sample</th><th class="num">Δ</th></tr></thead><tbody>';
+      r.sieve_deltas.forEach(function (row) {
+        if (row.design == null && row.sample == null) return;
+        // skip full 100/100 coarse top if both 100
+        if (row.design === 100 && row.sample === 100) return;
+        h += "<tr><td>" + esc(row.label) + '</td><td class="num">' + (row.design != null ? row.design : "—") +
+          '</td><td class="num">' + (row.sample != null ? row.sample : "—") +
+          '</td><td class="num">' + (row.delta_sample_minus_design != null ? ((row.delta_sample_minus_design > 0 ? "+" : "") + row.delta_sample_minus_design) : "—") + "</td></tr>";
+      });
+      h += "</tbody></table>";
+    }
+
+    if (r.ac_void_estimate && !r.ac_void_estimate.error) {
+      var ac = r.ac_void_estimate;
+      h += '<div class="bch">AC → Va (ACVC ' + esc(String(ac.acvc)) + ")</div>";
+      h += '<div class="bcm">ΔAC ' + (ac.delta_ac > 0 ? "+" : "") + ac.delta_ac + "% → approx ΔVa " +
+        (ac.approx_delta_va > 0 ? "+" : "") + ac.approx_delta_va + "% · " + esc(ac.plant_rule || "") + "</div>";
+    }
+    if (r.volumetric_inputs) {
+      var vol = r.volumetric_inputs;
+      if (vol.va) {
+        h += '<div class="bcm">Measured ΔVa: ' + (vol.va.delta != null ? vol.va.delta : "—") +
+          (vol.va_residual_after_ac != null ? " · residual after AC: " + vol.va_residual_after_ac : "") + "</div>";
+      }
+      if (vol.vma && vol.vma.delta != null) {
+        h += '<div class="bcm">Measured ΔVMA: ' + vol.vma.delta + "</div>";
+      }
+    }
+
+    if (r.vma_sensitivity_estimate && r.vma_sensitivity_estimate.components) {
+      var vs = r.vma_sensitivity_estimate;
+      h += '<div class="bch">VMA sensitivity (rules-of-thumb, not independent)</div><table><thead><tr><th>Lever</th><th class="num">Δ input</th><th class="num">≈ ΔVMA</th></tr></thead><tbody>';
+      vs.components.forEach(function (c) {
+        h += "<tr><td>" + esc(c.lever) + '</td><td class="num">' + c.delta_input +
+          '</td><td class="num">' + (c.approx_delta_vma > 0 ? "+" : "") + c.approx_delta_vma + "</td></tr>";
+      });
+      h += "</tbody></table>";
+      if (vs.total_approx_vma != null) {
+        h += '<div class="bcm">Naive sum ≈ ' + vs.total_approx_vma + "% VMA — use direction + largest lever only.</div>";
+      }
+    }
+
+    h += '<div class="bcm" style="margin-top:8px">Advisory numbers for the plant floor. Shape/texture/strength shifts are outside this math.</div>';
+    $("bc-out").innerHTML = h;
+    $("bc-out").hidden = false;
+  }
+  $("bc-run").addEventListener("click", function () {
+    var mix = selectedMix("bc-mix");
+    var sample = bcCollectGrad("#bcform .bc-sv");
+    if (!Object.keys(sample).length) {
+      $("bc-out").hidden = false;
+      $("bc-out").innerHTML = '<div class="errbox" style="margin:0">⚠ Enter at least one sample sieve % passing (or pick a mix to prefill design, then edit).</div>';
+      return;
+    }
+    var payload = {
+      calc: "bailey",
+      action: "analyze",
+      sample_gradation: sample,
+      mix_type: $("bc-type").value || "auto",
+    };
+    if (mix) payload.jmf_id = mix.id;
+    var dac = bcNum("bc-ac-d"), sac = bcNum("bc-ac-s");
+    var dva = bcNum("bc-va-d"), sva = bcNum("bc-va-s");
+    var dvma = bcNum("bc-vma-d"), svma = bcNum("bc-vma-s");
+    var dAcDelta = bcNum("bc-ac-delta");
+    if (dac != null) payload.design_ac = dac;
+    if (sac != null) payload.sample_ac = sac;
+    if (dva != null) payload.design_va = dva;
+    if (sva != null) payload.sample_va = sva;
+    if (dvma != null) payload.design_vma = dvma;
+    if (svma != null) payload.sample_vma = svma;
+    if (dAcDelta != null) payload.proposed_ac_delta = dAcDelta;
+    // If no jmf, still allow design gradation = current sample prefilled-from-mix already is sample;
+    // when mix selected, server loads design from pack.
+    if (!mix) {
+      // Without JMF, use current sieve fields as sample only (ratios mode-ish)
+      payload.design_gradation = sample;
+    }
+
+    $("bc-run").disabled = true;
+    $("bc-run").textContent = "Running…";
+    $("bc-ask").disabled = true;
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(function (res) { return res.json().then(function (j) { return { ok: res.ok, j: j }; }); })
+      .then(function (x) {
+        bcLast = { result: x.j, payload: payload, mix: mix };
+        renderBaileyResult(x.j);
+        $("bc-ask").disabled = !!(x.j && x.j.status === "ok");
+      })
+      .catch(function (e) {
+        bcLast = null;
+        $("bc-out").hidden = false;
+        $("bc-out").innerHTML = '<div class="errbox" style="margin:0">⚠ ' + esc(String(e.message || e)) + "</div>";
+      })
+      .finally(function () {
+        $("bc-run").disabled = false;
+        $("bc-run").textContent = "Run calc";
+      });
+  });
+  $("bc-ask").addEventListener("click", function () {
+    if (!bcLast || !bcLast.result || bcLast.result.status !== "ok") return;
+    var r = bcLast.result;
+    var mix = bcLast.mix;
+    var lines = ["Bailey calc interpretation."];
+    if (mix) lines.push("Mix design: " + mix.name + " (JMF " + mix.id + ")");
+    else if (r.jmf_used) lines.push("JMF " + r.jmf_used.jmf_id + (r.jmf_used.name ? " — " + r.jmf_used.name : ""));
+    lines.push("I already ran the deterministic bailey_calc tool. Use these numbers (do not re-derive ratios by hand):");
+    lines.push("- NMAS " + r.nmas_mm + " mm; mix type " + (r.mix_type_used || "") + (r.mix_classification && r.mix_classification.reason ? " (" + r.mix_classification.reason + ")" : ""));
+    if (r.design_ratios) {
+      lines.push("- Design CA " + r.design_ratios.ca_ratio + ", FAc " + r.design_ratios.fac_ratio + ", FAf " + r.design_ratios.faf_ratio);
+    }
+    if (r.sample_ratios) {
+      lines.push("- Sample CA " + r.sample_ratios.ca_ratio + ", FAc " + r.sample_ratios.fac_ratio + ", FAf " + r.sample_ratios.faf_ratio);
+    }
+    if (r.control_sieve_flags && r.control_sieve_flags.length) {
+      lines.push("- Flags: " + r.control_sieve_flags.map(function (f) {
+        return f.control + " " + (f.delta_pct > 0 ? "+" : "") + f.delta_pct + "% (" + f.meaning + ")";
+      }).join("; "));
+    }
+    if (r.ac_void_estimate && r.ac_void_estimate.approx_delta_va != null) {
+      lines.push("- AC→Va: ΔAC " + r.ac_void_estimate.delta_ac + " → approx ΔVa " + r.ac_void_estimate.approx_delta_va);
+    }
+    if (r.volumetric_inputs && r.volumetric_inputs.va && r.volumetric_inputs.va.delta != null) {
+      lines.push("- Measured ΔVa " + r.volumetric_inputs.va.delta +
+        (r.volumetric_inputs.va_residual_after_ac != null ? ", residual after AC " + r.volumetric_inputs.va_residual_after_ac : ""));
+    }
+    if (r.vma_sensitivity_estimate && r.vma_sensitivity_estimate.components) {
+      lines.push("- VMA levers: " + r.vma_sensitivity_estimate.components.map(function (c) {
+        return c.lever + " ≈ " + (c.approx_delta_vma > 0 ? "+" : "") + c.approx_delta_vma + "% VMA";
+      }).join("; "));
+    }
+    // Include sieve list for context
+    var sieves = [];
+    document.querySelectorAll("#bcform .bc-sv").forEach(function (s) {
+      if (s.value.trim()) sieves.push(s.getAttribute("data-sieve") + ": " + s.value.trim());
+    });
+    if (sieves.length) lines.push("Sample gradation (% passing): " + sieves.join(", "));
+    var q = $("bc-q").value.trim();
+    lines.push(q || "What bin / AC changes should I make, if any? Give advisory options with expected Va/VMA effect.");
     composeToInput(lines.join("\n"));
   });
 

@@ -1142,9 +1142,27 @@ export default async (req) => {
 
   let body;
   try { body = await req.json(); } catch { body = null; }
+
+  // Deterministic Bailey calculator (no model) — used by the Bailey calc tab
+  if (body && body.calc === "bailey") {
+    try {
+      const result = baileyCalc(body, { getJmfRecord });
+      const status = result && result.error ? 400 : 200;
+      return new Response(JSON.stringify(result), {
+        status,
+        headers: { "content-type": "application/json", "cache-control": "no-store" },
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: String(e.message || e) }), {
+        status: 500,
+        headers: { "content-type": "application/json" },
+      });
+    }
+  }
+
   const messages = body && Array.isArray(body.messages) ? body.messages.slice(-16) : null;
   if (!messages || !messages.length)
-    return new Response(JSON.stringify({ error: "Body must be { messages: [{role, content}, ...] }" }), { status: 400, headers: { "content-type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Body must be { messages: [{role, content}, ...] } or { calc: \"bailey\", ... }" }), { status: 400, headers: { "content-type": "application/json" } });
   const provider = body.provider === "grok" ? "grok" : "claude";
 
   const encoder = new TextEncoder();

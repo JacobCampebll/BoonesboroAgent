@@ -48,7 +48,9 @@ An AI QC / mix-design assistant for **The Allen Company's Boonesborough Asphalt 
   Key-protected; disabled when the env var is unset; **never exposed to the model.**
 
 ## UI preset tabs (chips, in `index.html`)
-`Mix change` · `Plant history` · `Pay factor` · `Contracts` · `Log it`
+`Mix change` · `Bailey calc` · `Plant history` · `Pay factor` · `Contracts` · `Log it`
+- **Bailey calc** posts `{ calc: "bailey", ... }` to the agent function (no model) and renders
+  ratios / sieve deltas / AC→Va inline; **Ask the agent** composes an interpretation prompt.
 - Shared mix dropdown fed by `?mixes=1` (`loadMixes`/`populateMixes`/`selectedMix`).
 - `hideForms()` hides ALL `.preset-form` — only one tab open at a time.
 - **Pay factor** uses the real KYTC Lot Pay Adjustment Schedule (Compaction Option A, in the spec
