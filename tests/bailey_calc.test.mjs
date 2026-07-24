@@ -1,4 +1,5 @@
-// Smoke tests for bailey_calc.mjs — run: node bailey_calc.test.mjs
+// Smoke tests for bailey_calc — run from repo root:
+//   node tests/bailey_calc.test.mjs
 import {
   baileyCalc,
   computeRatios,
@@ -7,7 +8,7 @@ import {
   estimateVaFromAc,
   normalizeGradation,
   analyze,
-} from "./bailey_calc.mjs";
+} from "../netlify/functions/lib/bailey_calc.mjs";
 
 let failed = 0;
 function assert(cond, msg) {

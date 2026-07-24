@@ -22,7 +22,7 @@ import specData from "./data/spec.mjs";
 import proposals from "./data/proposals.mjs";
 import jmfData from "./data/jmf_records.mjs";
 import linkData from "./data/contract_links.mjs";
-import { baileyCalc } from "./bailey_calc.mjs";
+import { baileyCalc } from "./lib/bailey_calc.mjs";
 
 const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = () => process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";

@@ -28,9 +28,10 @@ An AI QC / mix-design assistant for **The Allen Company's Boonesborough Asphalt 
 
 ## The seven tools (in `agent.mjs`)
 1. `search_bailey` — Bailey Method KB (BM25 over `data/bailey_kb.mjs`)
-2. `bailey_calc` — **deterministic** Bailey/plant calculator (`bailey_calc.mjs`): control sieves
+2. `bailey_calc` — **deterministic** Bailey/plant calculator (`lib/bailey_calc.mjs`): control sieves
    (Half/PCS/SCS/TCS), CA/FAc/FAf, sieve deltas, VMA sensitivity RoTs, AC→Va via ACVC 2.25.
-   Prefer this for mix-change numbers; search_bailey for narrative + citations.
+   Prefer this for mix-change numbers; search_bailey for narrative + citations. Not a standalone
+   Netlify function (lives under `functions/lib/` so esbuild only bundles it into `agent`).
 3. `search_spec` — KYTC Standard Specs + Kentucky Methods (`data/spec.mjs`, 3,859 chunks)
 4. `search_contracts` — proposals/contracts corpus (`data/proposals.mjs`: 23 jobs / 1,603 bid
    items / 5,618 passages). On-demand only.
