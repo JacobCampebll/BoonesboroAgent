@@ -1,6 +1,6 @@
 // Boonesboro Lab Agent — service worker
 // Caches the app shell for install + offline. Never touches the agent API (POST /.netlify/*).
-const CACHE = "bt3-shell-v1";
+const CACHE = "bt3-shell-v2";
 const SHELL = [
   "/",
   "/index.html",
